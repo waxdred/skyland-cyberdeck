@@ -52,7 +52,7 @@ private func clipped(_ text: String, _ rect: NSRect, _ font: NSFont, _ color: NS
     let style = NSMutableParagraphStyle()
     style.lineBreakMode = .byTruncatingTail
     let halo = NSShadow()
-    halo.shadowColor = NSColor.black.withAlphaComponent(0.9 * alpha)
+    halo.shadowColor = Neon.ink.withAlphaComponent(0.9 * alpha)
     halo.shadowBlurRadius = 4
     halo.shadowOffset = .zero
     let attributed = NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: color.withAlphaComponent(alpha),

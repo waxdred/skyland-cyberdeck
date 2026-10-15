@@ -11,6 +11,10 @@ let usage = """
       list [--json] [--limit N] [--all]
                                     messages, newest first (--all: dismissed ones too)
       dismiss <id> | --all          hide a message, or all of them
+      theme [name] | theme list     colors: cyberpunk (default), skyland (the current skyland
+                                    theme), a skyland theme name (43pr-dracula...) or a .css file;
+                                    no name: print the current one
+    any command: --theme <name>     use that theme for this call only
     """
 
 func fail(_ text: String) -> Never {
@@ -70,6 +74,16 @@ switch args.first {
         }
     case "dismiss":
         if args.contains("--all") { Messages.dismissAll() } else if args.count > 1 { Messages.dismiss(args[1]) } else { fail(usage) }
+    case "theme":
+        if args.count < 2 {
+            print(Theme.name)
+        } else if args[1] == "list" {
+            Theme.available().forEach { print($0) }
+        } else if args[1] == "cyberpunk" || Theme.file(args[1]) != nil {
+            Theme.save(args[1])
+        } else {
+            fail("skyland-cyberdeck: unknown theme '\(args[1])' (skyland-cyberdeck theme list)")
+        }
     case "-h", "--help", "help":
         print(usage)
     default:

@@ -1,12 +1,15 @@
 import AppKit
 
-/// Cyberpunk HUD palette and drawing helpers. Original drawing code; the look
-/// (neon red / cyan, cut corners, glow, flicker) follows the in-game UI style.
+/// HUD palette and drawing helpers. Original drawing code; the look (neon, cut
+/// corners, glow, flicker) follows the Cyberpunk 2077 UI style. The colors come
+/// from the theme (see Theme): `red` is the primary, `cyan` the secondary,
+/// `yellow` the highlight and `ink` the dark background tint.
 enum Neon {
-    static let red = NSColor(srgbRed: 1.0, green: 0.16, blue: 0.23, alpha: 1) // #ff2a3a
-    static let cyan = NSColor(srgbRed: 0.37, green: 0.96, blue: 0.97, alpha: 1) // #5ef4f8
-    static let yellow = NSColor(srgbRed: 0.95, green: 0.90, blue: 0.0, alpha: 1) // #f3e600
-    static let ink = NSColor(srgbRed: 0.04, green: 0.02, blue: 0.05, alpha: 1)
+    static let palette = Theme.load()
+    static var red: NSColor { palette.primary }
+    static var cyan: NSColor { palette.secondary }
+    static var yellow: NSColor { palette.highlight }
+    static var ink: NSColor { palette.ink }
 
     /// Condensed display font, falls back to the system font.
     static func title(_ size: CGFloat, _ weight: NSFont.Weight = .heavy) -> NSFont {
@@ -36,7 +39,7 @@ func chamfered(_ rect: NSRect, cut: CGFloat) -> NSBezierPath {
 func neonText(_ text: String, at point: NSPoint, font: NSFont, color: NSColor, glow: CGFloat = 8, alpha: CGFloat = 1, kern: CGFloat = 0) {
     NSGraphicsContext.saveGraphicsState()
     let halo = NSShadow()
-    halo.shadowColor = NSColor.black.withAlphaComponent(0.95 * alpha)
+    halo.shadowColor = Neon.ink.withAlphaComponent(0.95 * alpha)
     halo.shadowBlurRadius = 5
     halo.shadowOffset = .zero
     halo.set()

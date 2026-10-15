@@ -68,6 +68,23 @@ make build; skyland-cyberdeck notify -t "make build" -b "exit $status" -a com.mi
 skyland-cyberdeck list --json | jq length
 ```
 
+## Themes
+
+```sh
+skyland-cyberdeck theme                 # current theme
+skyland-cyberdeck theme list            # cyberpunk, skyland, then the skyland themes
+skyland-cyberdeck theme skyland         # follow the current skyland theme
+skyland-cyberdeck theme 43pr-dracula    # a skyland theme by name, or a path to a .css file
+skyland-cyberdeck launcher --theme 43pr-nord   # this call only
+```
+
+- `cyberpunk` (default): neon red, cyan and yellow
+- `skyland`: `~/.cache/skyland/theme.css`, so it follows light / dark, the theme
+  picker and the colors generated from the wallpaper
+- any file of `@define-color <key> #rrggbb;` lines (the 43PR / skyland theme format),
+  by name from `~/.config/skyland/themes` or by path: `accent` is the primary color,
+  `highlight` the secondary, `term3` the highlight and `bg` the background tint
+
 ## Integrations
 
 ### herdr: agent finished / needs you
