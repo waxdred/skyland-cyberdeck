@@ -22,6 +22,8 @@ their `Utilities`, `/System/Library/CoreServices/Applications` and `~/Applicatio
 
 ## Messages
 
+<p align="center"><img src="docs/messages.jpg" alt="Messages panel: neon contact cards over the screen" width="520"></p>
+
 A column of contact cards on the right of the screen: the macOS Notification
 Center history (Ghostty, Mail, Outlook, any app allowed to notify) merged with the
 messages your scripts send. `↑` `↓` / scroll to move, `return` or click opens the
@@ -44,6 +46,8 @@ skyland-cyberdeck list [--json] [--limit N] [--all]
 skyland-cyberdeck dismiss <id> | --all
 ```
 
+<p align="center"><img src="docs/toast.jpg" alt="notify popups, top right" width="420"></p>
+
 - `notify` stores a message, shows a glitching popup top right (stacked, click
   closes it) unless `--quiet`, and prints the message id. `-a` is a bundle id
   (its icon and name are used, e.g. `com.mitchellh.ghostty`) or any name.
@@ -53,6 +57,8 @@ skyland-cyberdeck dismiss <id> | --all
 
 API messages live in `~/Library/Application Support/skyland-cyberdeck/messages.json`
 (last 200).
+`SKYLAND_CYBERDECK_STORE=<file>` uses another store and leaves the Notification
+Center out (demos, tests).
 
 ```sh
 # long command done, from fish / zsh

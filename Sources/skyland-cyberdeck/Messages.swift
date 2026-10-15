@@ -33,7 +33,10 @@ private struct Store: Codable {
 
 enum Messages {
     static let maxApiMessages = 200
-    private static let storeUrl: URL = {
+    /// SKYLAND_CYBERDECK_STORE=<file>: an isolated store without the Notification
+    /// Center (demos, tests)
+    private static let isolatedStore = ProcessInfo.processInfo.environment["SKYLAND_CYBERDECK_STORE"].map { URL(fileURLWithPath: $0) }
+    private static let storeUrl: URL = isolatedStore ?? {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "skyland-cyberdeck")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appending(path: "messages.json")
@@ -52,7 +55,7 @@ enum Messages {
     /// Visible messages (or all of them), newest first.
     static func list(includeDismissed: Bool = false, limit: Int = 100) -> [Message] {
         let store = load()
-        let all = (store.messages + notificationCenter(limit: limit)).sorted { $0.date > $1.date }
+        let all = (store.messages + (isolatedStore == nil ? notificationCenter(limit: limit) : [])).sorted { $0.date > $1.date }
         let shown = includeDismissed ? all : all.filter { !store.dismissed.contains($0.id) && $0.date > store.clearedBefore }
         return Array(shown.prefix(limit))
     }
