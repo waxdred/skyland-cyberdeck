@@ -15,7 +15,7 @@ skyland-cyberdeck launcher   # toggle
 - a curved column of apps around the selection, wrapping like a wheel
 - type to search (prefix, word start, substring, then fuzzy), apps you launch often come first
 - `↑` `↓` or scroll to move, `return` or click to launch, `esc` or a click outside to close
-- opens on the screen under the mouse, over a blurred and dimmed screen
+- an eye implant overlay: opens on the screen under the mouse, which stays visible behind a light tint and scanlines
 
 Apps come from `/Applications` (and one folder down), `/System/Applications`,
 their `Utilities`, `/System/Library/CoreServices/Applications` and `~/Applications`.

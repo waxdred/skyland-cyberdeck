@@ -70,11 +70,12 @@ final class LauncherView: NSView {
     var deck: NSRect { NSRect(x: bounds.width * 0.12, y: bounds.midY - 60, width: rowWidth + 200, height: 120) }
 
     override func draw(_ dirtyRect: NSRect) {
-        // dimmed (and blurred, see LauncherApp) screen, scanlines, red vignette on the left
-        Neon.ink.withAlphaComponent(0.6).setFill()
+        // eye implant overlay: the screen stays visible behind a light tint,
+        // scanlines and a red vignette on the left
+        Neon.ink.withAlphaComponent(0.22).setFill()
         bounds.fill()
-        scanlines(bounds, color: .black, alpha: 0.25)
-        NSGradient(starting: Neon.red.withAlphaComponent(0.16), ending: .clear)!
+        scanlines(bounds, color: .black, alpha: 0.14)
+        NSGradient(starting: Neon.red.withAlphaComponent(0.14), ending: .clear)!
             .draw(in: NSRect(x: 0, y: 0, width: bounds.width * 0.55, height: bounds.height), angle: 0)
 
         let deck = self.deck
@@ -129,6 +130,8 @@ final class LauncherView: NSView {
         let fade = max(0.15, 1 - CGFloat(abs(offset)) * 0.2) * (focus ? flickerAlpha : 1)
         let path = chamfered(rect, cut: 10)
         if focus {
+            Neon.ink.withAlphaComponent(0.5 * fade).setFill()
+            path.fill()
             Neon.red.withAlphaComponent(0.20 * fade).setFill()
             path.fill()
             neonStroke(path, color: Neon.red, width: 1.6, glow: 12, alpha: fade)
@@ -137,6 +140,8 @@ final class LauncherView: NSView {
             NSRect(x: rect.maxX - 26, y: rect.minY - 4, width: 22, height: 2).fill()
             NSRect(x: rect.minX - 6, y: rect.maxY - 12, width: 2, height: 12).fill()
         } else {
+            Neon.ink.withAlphaComponent(0.45 * fade).setFill() // keeps the label readable over any window
+            path.fill()
             Neon.cyan.withAlphaComponent(0.05 * fade).setFill()
             path.fill()
             Neon.cyan.withAlphaComponent(0.35 * fade).setStroke()
@@ -194,15 +199,8 @@ final class LauncherApp: NSObject, NSApplicationDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        let blur = NSVisualEffectView(frame: NSRect(origin: .zero, size: screen.frame.size))
-        blur.material = .fullScreenUI
-        blur.blendingMode = .behindWindow
-        blur.state = .active
-        blur.appearance = NSAppearance(named: .darkAqua)
-        view.frame = blur.bounds
-        view.autoresizingMask = [.width, .height]
-        blur.addSubview(view)
-        panel.contentView = blur
+        view.frame = NSRect(origin: .zero, size: screen.frame.size)
+        panel.contentView = view
         view.apps = Apps.all()
         view.refilter()
 
