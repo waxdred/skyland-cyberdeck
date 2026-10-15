@@ -72,9 +72,9 @@ final class LauncherView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         // eye implant overlay: the screen stays visible behind a light tint,
         // scanlines and a red vignette on the left
-        Neon.ink.withAlphaComponent(0.22).setFill()
+        Neon.ink.withAlphaComponent(0.10).setFill()
         bounds.fill()
-        scanlines(bounds, color: .black, alpha: 0.14)
+        scanlines(bounds, color: .black, alpha: 0.10)
         NSGradient(starting: Neon.red.withAlphaComponent(0.14), ending: .clear)!
             .draw(in: NSRect(x: 0, y: 0, width: bounds.width * 0.55, height: bounds.height), angle: 0)
 
@@ -130,7 +130,7 @@ final class LauncherView: NSView {
         let fade = max(0.5, 1 - CGFloat(abs(offset)) * 0.12) * (focus ? flickerAlpha : 1)
         let path = chamfered(rect, cut: 10)
         if focus {
-            Neon.ink.withAlphaComponent(0.5 * fade).setFill()
+            Neon.ink.withAlphaComponent(0.35 * fade).setFill()
             path.fill()
             Neon.red.withAlphaComponent(0.20 * fade).setFill()
             path.fill()
@@ -140,7 +140,7 @@ final class LauncherView: NSView {
             NSRect(x: rect.maxX - 26, y: rect.minY - 4, width: 22, height: 2).fill()
             NSRect(x: rect.minX - 6, y: rect.maxY - 12, width: 2, height: 12).fill()
         } else {
-            Neon.ink.withAlphaComponent(0.6 * fade).setFill() // keeps the label readable over any window
+            Neon.ink.withAlphaComponent(0.38 * fade).setFill() // keeps the label readable over any window
             path.fill()
             Neon.cyan.withAlphaComponent(0.05 * fade).setFill()
             path.fill()
