@@ -4,7 +4,7 @@ Cyberpunk HUD pieces for macOS: neon red / cyan, cut corners, glow, scanlines an
 flicker. Made for [skyland](https://github.com/waxdred/skyland) (a Hyprland-like
 tiling window manager for macOS), works on its own with any window manager.
 
-<p align="center"><img src="docs/launcher.png" alt="Apps launcher: tilted neon deck with a curved column of apps" width="520"></p>
+<p align="center"><img src="docs/launcher.jpg" alt="Apps launcher: tilted neon deck with a curved column of apps" width="520"></p>
 
 ## Apps launcher
 
