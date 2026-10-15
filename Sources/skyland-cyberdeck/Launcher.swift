@@ -88,8 +88,8 @@ final class LauncherView: NSView {
         NSGraphicsContext.saveGraphicsState()
         tilt.concat()
         // header
-        neonText("APPS", at: NSPoint(x: left, y: deck.minY - 372), font: Neon.title(76), color: Neon.red, glow: 16, kern: 4)
-        neonText("// NETRUNNER DECK — ONLINE", at: NSPoint(x: left + 4, y: deck.minY - 282), font: Neon.mono(13, .semibold), color: Neon.cyan, glow: 6, alpha: 0.9)
+        neonText("APPS LAUNCHER", at: NSPoint(x: left, y: deck.minY - 300), font: Neon.title(22, .bold), color: Neon.cyan, glow: 6, kern: 3)
+        neonText("// CYBERDECK — RUNNING", at: NSPoint(x: left + 2, y: deck.minY - 276), font: Neon.mono(12, .semibold), color: Neon.cyan, glow: 4, alpha: 0.8)
         Neon.red.withAlphaComponent(0.6).setFill()
         NSRect(x: left, y: deck.minY - 256, width: rowWidth, height: 1.5).fill()
         // search line
