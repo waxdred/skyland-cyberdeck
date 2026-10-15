@@ -68,6 +68,28 @@ make build; skyland-cyberdeck notify -t "make build" -b "exit $status" -a com.mi
 skyland-cyberdeck list --json | jq length
 ```
 
+## Integrations
+
+### herdr: agent finished / needs you
+
+[`integrations/herdr`](integrations/herdr) is a [herdr](https://herdr.dev) plugin: on
+`pane.agent_status_changed`, an agent that is `done` gives "claude finished", one that
+is `blocked` or `waiting` gives "claude needs you", with the herdr workspace label
+and the pane title. Nothing pops up for the pane you are looking at (focused pane
+with Ghostty in front, asked to skyland's CLI when it is there).
+
+```sh
+herdr plugin link ~/code/hyperland/skyland-cyberdeck/integrations/herdr
+```
+
+### Mail
+
+Any mail checker can call `notify`, e.g. a sketchybar mail item, once per new mail:
+
+```sh
+skyland-cyberdeck notify -a com.apple.mail -t "$subject" -s "$sender" -b "$preview"
+```
+
 ## Build
 
 ```sh

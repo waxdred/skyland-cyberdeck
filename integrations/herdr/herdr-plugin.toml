@@ -1,0 +1,10 @@
+id = "skyland.cyberdeck"
+name = "skyland-cyberdeck"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Cyberdeck message when an agent finishes or needs you"
+platforms = ["macos"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["/bin/bash", "agent-status.sh"]
