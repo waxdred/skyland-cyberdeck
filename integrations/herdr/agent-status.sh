@@ -4,7 +4,11 @@
 # HERDR_PLUGIN_EVENT_JSON; the last one is kept in the plugin state dir.
 DECK="${SKYLAND_CYBERDECK:-$HOME/code/hyperland/skyland-cyberdeck/.build/release/skyland-cyberdeck}"
 [[ -x "$DECK" ]] || exit 0
-[[ -n "$HERDR_PLUGIN_STATE_DIR" ]] && printf '%s\n' "$HERDR_PLUGIN_EVENT_JSON" > "$HERDR_PLUGIN_STATE_DIR/last-event.json"
+STATE="${HERDR_PLUGIN_STATE_DIR:-${TMPDIR:-/tmp}/skyland-cyberdeck-herdr}"
+mkdir -p "$STATE"
+printf '%s\n' "$HERDR_PLUGIN_EVENT_JSON" > "$STATE/last-event.json"
+printf '%s %s\n' "$(date '+%F %T')" "$HERDR_PLUGIN_EVENT_JSON" >> "$STATE/events.log"
+tail -n 300 "$STATE/events.log" > "$STATE/events.log.tmp" && mv "$STATE/events.log.tmp" "$STATE/events.log"
 
 # status / agent / workspace / pane title, wherever they sit in the event
 IFS=$'\t' read -r status agent where detail < <(printf '%s' "$HERDR_PLUGIN_EVENT_JSON" | /usr/bin/python3 -c '
@@ -62,8 +66,18 @@ if [[ "$focused" == true && -x "$WM" ]] \
 fi
 
 case "$status" in
-    done) title="${agent:-agent} finished" ;;
-    blocked | waiting) title="${agent:-agent} needs you" ;;
+    done) kind=done title="${agent:-agent} finished" ;;
+    blocked | waiting) kind=request title="${agent:-agent} needs you" ;;
     *) exit 0 ;;
 esac
+
+# herdr flaps done -> working -> done at the end of a turn: one message per pane
+# and kind, then quiet for DEBOUNCE seconds
+DEBOUNCE=60
+stamp="$STATE/notified-$(printf '%s' "${pane_id:-unknown}" | tr -c 'A-Za-z0-9' _)-$kind"
+now=$(date +%s)
+if [[ -f "$stamp" ]] && (( now - $(cat "$stamp") < DEBOUNCE )); then
+    exit 0
+fi
+echo "$now" > "$stamp"
 "$DECK" notify -a com.mitchellh.ghostty -t "$title" -s "${where:-herdr}" -b "$detail" >/dev/null 2>&1 &
