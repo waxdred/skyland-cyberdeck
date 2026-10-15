@@ -105,12 +105,6 @@ alt-shift-m = 'exec-and-forget ~/code/hyperland/skyland-cyberdeck/.build/release
 alt-shift-x = 'exec-and-forget ~/code/hyperland/skyland-cyberdeck/.build/release/skyland-cyberdeck dismiss --all'
 ```
 
-## Credits
-
-The look is inspired by [CyberArch-Shell](https://github.com/ARCANGEL0/CyberArch-Shell)
-and the Cyberpunk 2077 UI. No code or asset of either is used: the drawing is
-original and no game icon, font or sound is included.
-
 ## License
 
 MIT
