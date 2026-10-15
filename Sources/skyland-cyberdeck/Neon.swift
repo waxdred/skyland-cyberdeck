@@ -31,8 +31,17 @@ func chamfered(_ rect: NSRect, cut: CGFloat) -> NSBezierPath {
     return path
 }
 
-/// Draw `text` with a neon glow (a colored shadow).
+/// Draw `text` with a neon glow (a colored shadow) over a dark halo, so it reads
+/// over any window behind the see-through overlay.
 func neonText(_ text: String, at point: NSPoint, font: NSFont, color: NSColor, glow: CGFloat = 8, alpha: CGFloat = 1, kern: CGFloat = 0) {
+    NSGraphicsContext.saveGraphicsState()
+    let halo = NSShadow()
+    halo.shadowColor = NSColor.black.withAlphaComponent(0.95 * alpha)
+    halo.shadowBlurRadius = 5
+    halo.shadowOffset = .zero
+    halo.set()
+    (text as NSString).draw(at: point, withAttributes: [.font: font, .foregroundColor: color.withAlphaComponent(alpha), .kern: kern])
+    NSGraphicsContext.restoreGraphicsState()
     NSGraphicsContext.saveGraphicsState()
     let shadow = NSShadow()
     shadow.shadowColor = color.withAlphaComponent(0.9 * alpha)

@@ -96,9 +96,9 @@ final class LauncherView: NSView {
         let prompt = "> " + (query.isEmpty ? "" : query.uppercased()) + (cursorOn ? "_" : " ")
         neonText(prompt, at: NSPoint(x: left, y: deck.minY - 242), font: Neon.mono(20, .bold), color: Neon.yellow, glow: 8)
         if query.isEmpty {
-            neonText("TYPE TO SEARCH", at: NSPoint(x: left + 48, y: deck.minY - 238), font: Neon.mono(14), color: Neon.yellow, glow: 0, alpha: 0.35)
+            neonText("TYPE TO SEARCH", at: NSPoint(x: left + 48, y: deck.minY - 238), font: Neon.mono(14), color: Neon.yellow, glow: 0, alpha: 0.7)
         }
-        neonText("\(shown.count) / \(apps.count)", at: NSPoint(x: left + rowWidth - 70, y: deck.minY - 238), font: Neon.mono(12), color: Neon.cyan, glow: 0, alpha: 0.6)
+        neonText("\(shown.count) / \(apps.count)", at: NSPoint(x: left + rowWidth - 70, y: deck.minY - 238), font: Neon.mono(12), color: Neon.cyan, glow: 0, alpha: 0.9)
 
         // rows, far ones first so the selection is on top
         let half = Self.visible / 2
@@ -114,7 +114,7 @@ final class LauncherView: NSView {
         NSGraphicsContext.restoreGraphicsState()
         // footer
         let footer = "TYPE  search      ↑ ↓ / SCROLL  move      ↩ / CLICK  launch      ESC  close"
-        neonText(footer, at: NSPoint(x: left, y: bounds.maxY - 60), font: Neon.mono(11, .semibold), color: Neon.cyan, glow: 0, alpha: 0.55)
+        neonText(footer, at: NSPoint(x: left, y: bounds.maxY - 60), font: Neon.mono(11, .semibold), color: Neon.cyan, glow: 0, alpha: 0.9)
     }
 
     /// Index of the row `offset` away from the selection: the list wraps like a wheel
@@ -127,7 +127,7 @@ final class LauncherView: NSView {
 
     private func drawRow(_ app: AppEntry, index: Int, offset: Int, rect: NSRect) {
         let focus = offset == 0
-        let fade = max(0.15, 1 - CGFloat(abs(offset)) * 0.2) * (focus ? flickerAlpha : 1)
+        let fade = max(0.5, 1 - CGFloat(abs(offset)) * 0.12) * (focus ? flickerAlpha : 1)
         let path = chamfered(rect, cut: 10)
         if focus {
             Neon.ink.withAlphaComponent(0.5 * fade).setFill()
@@ -140,7 +140,7 @@ final class LauncherView: NSView {
             NSRect(x: rect.maxX - 26, y: rect.minY - 4, width: 22, height: 2).fill()
             NSRect(x: rect.minX - 6, y: rect.maxY - 12, width: 2, height: 12).fill()
         } else {
-            Neon.ink.withAlphaComponent(0.45 * fade).setFill() // keeps the label readable over any window
+            Neon.ink.withAlphaComponent(0.6 * fade).setFill() // keeps the label readable over any window
             path.fill()
             Neon.cyan.withAlphaComponent(0.05 * fade).setFill()
             path.fill()
@@ -155,7 +155,7 @@ final class LauncherView: NSView {
         let font = Neon.title(focus ? 21 : 17, focus ? .bold : .semibold)
         let textY = rect.midY - font.capHeight / 2 - (font.ascender - font.capHeight)
         neonText(app.name.uppercased(), at: NSPoint(x: rect.minX + iconSize + 24, y: textY), font: font,
-                 color: focus ? NSColor.white : Neon.cyan, glow: focus ? 10 : 0, alpha: fade, kern: 1.5)
+                 color: focus ? NSColor.white : Neon.cyan, glow: focus ? 10 : 3, alpha: min(1, fade + 0.2), kern: 1.5)
         let tag = String(format: "0x%02X", index)
         neonText(tag, at: NSPoint(x: rect.maxX - 52, y: rect.midY - 7), font: Neon.mono(11), color: focus ? Neon.red : Neon.cyan, glow: 0, alpha: 0.7 * fade)
     }
