@@ -75,6 +75,7 @@ final class HudModel: ObservableObject {
     private var themeDate: Date?
     /// set by the app: forget the dragged position, back on the right
     var resetPosition: () -> Void = {}
+
     @Published var cpu: Double?
     @Published var cpuHistory = History(capacity: 60)
     @Published var memory: (used: UInt64, total: UInt64)?
