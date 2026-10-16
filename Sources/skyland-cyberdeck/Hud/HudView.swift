@@ -161,14 +161,15 @@ struct Spark: View {
 struct Ring: View {
     let value: Double?
     let center: String
+    var size: CGFloat = 56
     var body: some View {
         ZStack {
             Circle().stroke(Tok.off.opacity(0.5), lineWidth: 3)
             Circle().trim(from: 0, to: value ?? 0).stroke(Tok.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90)).shadow(color: Tok.accent.opacity(0.7), radius: 4)
-            Text(center).font(Tok.mono(15, .semibold)).foregroundStyle(Tok.text)
+            Text(center).font(Tok.mono(12, .semibold)).foregroundStyle(Tok.text)
         }
-        .frame(width: 56, height: 56)
+        .frame(width: size, height: size)
     }
 }
 
@@ -200,6 +201,7 @@ struct HudView: View {
         }
         .padding(24)
         .frame(width: 780)
+        .background(DragHandle(reset: model.resetPosition)) // the deck moves when dragged between the cards
         .background(model.settings.cyberspace > 0 ? Cyberspace(strength: model.settings.cyberspace, color: Tok.accentColor).clipShape(CutFrame()) : nil)
         .background(CutFrame().fill(Tok.background.opacity(model.settings.opacity)))
         .background(CutFrame().fill(.ultraThinMaterial).opacity(model.settings.blur)) // [hud] blur: partly blurred behind
@@ -386,56 +388,46 @@ struct SystemCard: View {
     @ObservedObject var model: HudModel
     var body: some View {
         Card(title: "System", action: { model.open(app: "com.apple.ActivityMonitor") }) {
-            HStack(alignment: .top, spacing: 12) {
-                HStack(spacing: 10) {
-                    Ring(value: model.cpu, center: model.cpu.map { "\(Int(($0 * 100).rounded()))" } ?? "--")
-                    VStack(alignment: .leading, spacing: 2) {
-                        Label(text: "CPU")
-                        Text(model.cpu.map { "\(Int(($0 * 100).rounded()))%" } ?? "…").font(Tok.mono(16, .semibold)).foregroundStyle(Tok.text)
-                        Spark(values: model.cpuHistory.values).frame(height: 22)
-                    }
+            HStack(alignment: .center, spacing: 14) {
+                let share = model.memory.map { Double($0.used) / Double($0.total) }
+                gauge("CPU", value: model.cpu, text: model.cpu.map { "\(Int(($0 * 100).rounded()))%" }, history: model.cpuHistory.values)
+                gauge("RAM", value: share, text: model.memory.map { formatBytes(Double($0.used), binary: true) }, history: nil)
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(text: model.interface ?? "offline")
+                    Text("↓ \(model.download.map { formatBytes($0, perSecond: true) } ?? "…")").foregroundStyle(Tok.accent)
+                    Text("↑ \(model.upload.map { formatBytes($0, perSecond: true) } ?? "…")").foregroundStyle(Tok.hot)
                 }
-                .frame(maxWidth: .infinity)
-                HStack(spacing: 10) {
-                    let share = model.memory.map { Double($0.used) / Double($0.total) }
-                    Ring(value: share, center: share.map { "\(Int(($0 * 100).rounded()))" } ?? "--")
-                    VStack(alignment: .leading, spacing: 2) {
-                        Label(text: "RAM")
-                        Text(model.memory.map { formatBytes(Double($0.used), binary: true) } ?? "…").font(Tok.mono(16, .semibold)).foregroundStyle(Tok.text)
-                        Text(model.memory.map { "OF \(formatBytes(Double($0.total), binary: true))" } ?? "").font(Tok.mono(9)).foregroundStyle(Tok.dim)
-                    }
+                .font(Tok.mono(10, .semibold)).lineLimit(1).frame(minWidth: 90, alignment: .leading)
+                Spark(values: model.netHistory.values, color: Tok.hot).frame(height: 26)
+                if let storage = model.storage {
+                    let used = Double(storage.total - storage.available) / Double(storage.total)
+                    bar("DISK", "\(Int((used * 100).rounded()))%", used, used > 0.9 ? Tok.warn : Tok.accent)
                 }
-                .frame(maxWidth: .infinity)
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(text: "Network \(model.interface ?? "offline")")
-                    HStack(spacing: 10) {
-                        Text("↓ \(model.download.map { formatBytes($0, perSecond: true) } ?? "…")").foregroundStyle(Tok.accent)
-                        Text("↑ \(model.upload.map { formatBytes($0, perSecond: true) } ?? "…")").foregroundStyle(Tok.hot)
-                    }
-                    .font(Tok.mono(11, .semibold)).lineLimit(1).minimumScaleFactor(0.7)
-                    Spark(values: model.netHistory.values, color: Tok.hot).frame(height: 22)
+                if let battery = model.battery {
+                    let low = battery.percent < 15 && !battery.onAC
+                    bar(battery.charging ? "BAT ⚡" : "BAT", "\(battery.percent)%", Double(battery.percent) / 100, low ? Tok.bad : Tok.ok)
                 }
-                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 7).fill(Tok.elevated))
-                VStack(alignment: .leading, spacing: 6) {
-                    if let storage = model.storage {
-                        let used = Double(storage.total - storage.available)
-                        Label(text: "Storage")
-                        Text("\(formatBytes(used)) / \(formatBytes(Double(storage.total)))").font(Tok.mono(11, .semibold)).foregroundStyle(Tok.text)
-                        Meter(value: used / Double(storage.total), color: used / Double(storage.total) > 0.9 ? Tok.warn : Tok.accent)
-                    }
-                    if let battery = model.battery {
-                        let low = battery.percent < 15 && !battery.onAC
-                        Label(text: battery.charging ? "Battery charging" : battery.onAC ? "Battery on AC" : "Battery")
-                        Text("\(battery.percent)%" + (battery.minutesLeft.map { "  \($0 / 60)h\(String(format: "%02d", $0 % 60))" } ?? ""))
-                            .font(Tok.mono(11, .semibold)).foregroundStyle(low ? Tok.bad : Tok.text)
-                        Meter(value: Double(battery.percent) / 100, color: low ? Tok.bad : Tok.ok)
-                    }
-                }
-                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 7).fill(Tok.elevated))
             }
         }
+    }
+
+    private func gauge(_ label: String, value: Double?, text: String?, history: [Double]?) -> some View {
+        HStack(spacing: 8) {
+            Ring(value: value, center: value.map { "\(Int(($0 * 100).rounded()))" } ?? "--", size: 40)
+            VStack(alignment: .leading, spacing: 2) {
+                Label(text: label)
+                Text(text ?? "…").font(Tok.mono(12, .semibold)).foregroundStyle(Tok.text).lineLimit(1)
+                if let history { Spark(values: history).frame(width: 54, height: 12) }
+            }
+        }
+    }
+
+    private func bar(_ label: String, _ text: String, _ value: Double, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack { Label(text: label); Spacer(); Text(text).font(Tok.mono(10, .semibold)).foregroundStyle(Tok.text) }
+            Meter(value: value, color: color)
+        }
+        .frame(width: 70)
     }
 }
 
@@ -603,5 +595,23 @@ struct TileView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(selected ? Tok.accent.opacity(0.16) : Tok.elevated))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Tok.accent.opacity(selected ? 0.8 : 0), lineWidth: 1))
         .hover(8, action: action)
+    }
+}
+
+/// Drag the deck by its background (header, gaps between cards); double-click puts it
+/// back on the right. Native window drag, like the media widget.
+struct DragHandle: NSViewRepresentable {
+    let reset: () -> Void
+    func makeNSView(context: Context) -> NSView { Handle(reset: reset) }
+    func updateNSView(_ view: NSView, context: Context) {}
+
+    final class Handle: NSView {
+        let reset: () -> Void
+        init(reset: @escaping () -> Void) { self.reset = reset; super.init(frame: .zero) }
+        required init?(coder: NSCoder) { nil }
+        override func mouseDown(with event: NSEvent) {
+            if event.clickCount == 2 { reset() } else { window?.performDrag(with: event) }
+        }
+        override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
     }
 }

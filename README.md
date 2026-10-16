@@ -44,7 +44,8 @@ A deck on the right of the screen under the mouse, with real data only:
   disk, battery (time left only when macOS estimates it)
 - **messages** (the last two) and **quick launch** apps
 
-Hovering lights up what can be clicked: a card opens its app (Clock, Calendar, Activity
+Drag it by its header or the gaps between the cards: it opens there next time;
+double-click those places to put it back on the right. Hovering lights up what can be clicked: a card opens its app (Clock, Calendar, Activity
 Monitor, the terminal for herdr, the messages panel, Sound settings), a message opens
 its app. `esc`, `alt-shift-d` or a click outside closes it; moving the mouse away does not (focus
 follows the mouse in skyland). Nothing is sampled while it is closed: the
@@ -64,6 +65,7 @@ opacity = 0.45           # deck background around the cards, 0 = clear
 blur = 0.35              # blur behind the deck, 0 = none, 1 = full
 card-opacity = 0.72      # card backgrounds, lower lets the backdrop through
 cyberspace = 0.6         # grid, data streams and scan line behind the cards, 0 = off
+scale = 1.0              # size of the whole deck, 0.5 to 2
 apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify"   # quick launch, by app name
 ```
 

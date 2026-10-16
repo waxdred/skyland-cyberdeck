@@ -57,6 +57,7 @@ enum Config {
         blur = 0.35              # blur behind the deck, 0 = none, 1 = full
         card-opacity = 0.72      # card backgrounds, lower lets the backdrop through
         cyberspace = 0.6         # grid, data streams and scan line behind the cards, 0 = off
+        scale = 1.0              # size of the whole deck, 0.5 to 2
         apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify" # quick launch, by app name
         """
 

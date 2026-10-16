@@ -13,6 +13,7 @@ struct HudSettings {
     var blur: Double    // strength of the blur behind the deck, 0 = none
     var cardOpacity: Double
     var cyberspace: Double // backdrop effect strength, 0 = off
+    var scale: Double      // size of the whole deck
     var secondTimezone: TimeZone?
     var theme: String
     var apps: [String]
@@ -32,6 +33,7 @@ struct HudSettings {
             blur: Double(min(1, max(0, Config.number("hud.blur", 0.35)))),
             cardOpacity: Double(min(1, max(0, Config.number("hud.card-opacity", 0.72)))),
             cyberspace: Double(min(1, max(0, Config.number("hud.cyberspace", 0.6)))),
+            scale: Double(min(2, max(0.5, Config.number("hud.scale", 1)))),
             secondTimezone: TimeZone(identifier: Config.string("hud.second-timezone", "")),
             // --theme of this call wins, then [hud] theme; netrunner is the HUD's own palette
             theme: CommandLine.arguments.contains("--theme") ? Theme.name : Config.string("hud.theme", "netrunner"),
@@ -68,6 +70,8 @@ final class HudModel: ObservableObject {
     var firstWeekday: Int { settings.weekStart == 0 ? Calendar.current.firstWeekday : settings.weekStart }
 
     @Published var monthOffset = 0
+    /// set by the app: forget the dragged position, back on the right
+    var resetPosition: () -> Void = {}
     @Published var cpu: Double?
     @Published var cpuHistory = History(capacity: 60)
     @Published var memory: (used: UInt64, total: UInt64)?
