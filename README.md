@@ -3,7 +3,8 @@
 Cyberpunk HUD pieces for macOS: neon red / cyan, cut corners, glow, scanlines and
 flicker. Made for [skyland](https://github.com/waxdred/skyland) (a Hyprland-like
 tiling window manager for macOS), works on its own with any window manager: an apps
-launcher, a messages panel with a scripting API, and a HUD with live system data.
+launcher, a messages panel with a scripting API, a HUD with live system data and an
+audio deck.
 
 <p align="center"><img src="docs/launcher.jpg" alt="Apps launcher: tilted neon deck with a curved column of apps" width="520"></p>
 
@@ -92,7 +93,63 @@ outside `/Applications` (Finder) are found too, missing ones are skipped.
   `CONNECTED` with the signal, and "Settings…" opens Wi-Fi settings for new networks.
 - Brightness: built-in display only (external monitors need DDC).
 - Focus / Do Not Disturb has no public API: not shown.
-- Not yet: now playing.
+- Now playing: in the [audio deck](#audio-deck).
+
+## Audio deck
+
+```sh
+skyland-cyberdeck audio   # toggle
+```
+
+A cyberspace construct for the sound: the live signal floats on the horizon of a
+neon grid and reacts to what plays, a flat line when nothing does.
+
+- **signal**: the audioware wave drawn from the system audio (low and mid bands, 30
+  times a second). Its line is the track's progress: click it to seek there.
+- **now playing**: title, artist, album and artwork (as a hologram) of the app macOS
+  shows in Control Center, with previous / play-pause / next.
+- **output**: volume and mute of the default output, the output devices as numbered
+  ports: click one (or press its number) to send the sound there.
+- **sources**: the apps outputting sound now, the now playing one first (`CONTROLLED`).
+  Click one to bring it to the front.
+
+### Using it
+
+- **Keys**: `space` play / pause, `←` `→` previous / next, `↑` `↓` volume, `m` mute,
+  `1`-`9` output port, `esc` closes it (a click outside does too).
+- **Drag it** by its header or the gaps between the cards: it opens there next time;
+  double-click those places to put it back in the middle of the screen.
+- **Themes**: the HUD's palette unless `[audio] theme` sets another; the wave takes the
+  theme's colors (ink on paper on a light theme) and follows theme changes live.
+- **Cost**: nothing runs while it is closed. Open: the audio capture only while
+  something plays, the now playing state pushed by macOS (no polling).
+
+### Settings
+
+```toml
+[audio]
+theme = ""               # "" = the [hud] theme, or any theme name or .css file
+scale = 1.0              # size of the whole deck, 0.5 to 2
+opacity = 0.55           # deck background around the cards, 0 = clear
+blur = 0.35              # blur behind the deck, 0 = none, 1 = full
+card-opacity = 0.72      # card backgrounds, lower lets the backdrop through
+cyberspace = 0.6         # grid, data streams and scan line behind the signal, 0 = off
+volume-step = 5          # ↑ ↓ volume change, in %
+```
+
+### Limits
+
+- The signal needs the **Screen Recording** permission (System Settings > Privacy &
+  Security) for the app that starts the deck (your terminal, skyland): without it the
+  deck says `NO CAPTURE` and the line stays flat. Only the sound is used.
+- Now playing goes through `/usr/bin/perl` and `libMediaRemoteAdapter.dylib` (built
+  with the package from [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter),
+  BSD-3, see `Sources/MediaRemoteAdapter`): since macOS 15.4 only Apple-signed tools
+  may read it. The library must sit next to `skyland-cyberdeck`, or in the `lib` /
+  `libexec` folder beside its `bin`; else the deck says `NO ADAPTER`.
+- Sources need macOS 14.4 (CoreAudio process objects); a browser tab counts for its
+  browser.
+- The transport controls the now playing app, not the other sources.
 
 ## Messages
 
@@ -212,7 +269,8 @@ brew install waxdred/tap/skyland-cyberdeck
 ```
 
 Or from source (Swift 5.9+, macOS 13+), then put `.build/release/skyland-cyberdeck`
-on your PATH:
+on your PATH (a link: the audio deck finds `libMediaRemoteAdapter.dylib` next to the
+real file):
 
 ```sh
 swift build -c release
@@ -226,6 +284,7 @@ With skyland, bind it in `~/.config/aerospace/aerospace.toml`:
 alt-d = 'exec-and-forget skyland-cyberdeck launcher'
 alt-shift-m = 'exec-and-forget skyland-cyberdeck messages'
 alt-shift-d = 'exec-and-forget skyland-cyberdeck hud'
+ctrl-alt-m = 'exec-and-forget skyland-cyberdeck audio'
 alt-shift-x = 'exec-and-forget skyland-cyberdeck dismiss --all'
 ```
 
