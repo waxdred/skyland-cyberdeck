@@ -2,6 +2,13 @@
 
 Each `## vX.Y.Z` section is also the text of its GitHub release.
 
+## v0.3.1
+
+- Audio deck: about 34% CPU instead of 42% while playing (the audioware wave costs
+  less to draw).
+- Light themes: text and states turn dark on light cards (they were nearly invisible),
+  sliders and menus follow the theme.
+
 ## v0.3.0
 
 - **Audio deck** (`skyland-cyberdeck audio`): the audioware wave from skyland's media
