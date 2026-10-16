@@ -5,6 +5,7 @@ let usage = """
     usage: skyland-cyberdeck <command>
       launcher                      toggle the apps launcher
       messages                      toggle the messages panel
+      hud                           toggle the HUD: clock, calendar, system, herdr agents, audio
       notify -t TITLE [-b BODY] [-s SUBTITLE] [-a APP] [--seconds N] [--quiet]
                                     add a message (APP: bundle id or any name), show a popup
                                     unless --quiet; prints its id
@@ -56,6 +57,9 @@ switch args.first {
     case "messages":
         toggle("messages")
         run(MessagesApp())
+    case "hud":
+        toggle("hud")
+        run(HudApp())
     case "notify":
         guard let title = option("-t", "--title", in: args) else { fail(usage) }
         let message = Messages.add(app: option("-a", "--app", in: args) ?? "skyland", title: title,
@@ -81,7 +85,7 @@ switch args.first {
             print(Theme.name)
         } else if args[1] == "list" {
             Theme.available().forEach { print($0) }
-        } else if args[1] == "cyberpunk" || Theme.file(args[1]) != nil {
+        } else if Theme.builtIn[args[1]] != nil || Theme.file(args[1]) != nil {
             Theme.save(args[1])
         } else {
             fail("skyland-cyberdeck: unknown theme '\(args[1])' (skyland-cyberdeck theme list)")

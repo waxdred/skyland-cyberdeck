@@ -12,6 +12,9 @@ struct Theme {
     var ink: NSColor
 
     static let cyberpunk = Theme(primary: rgb(0xff2a3a), secondary: rgb(0x5ef4f8), highlight: rgb(0xf3e600), ink: rgb(0x0a050d))
+    /// cyan netrunner HUD palette, the HUD's default
+    static let netrunner = Theme(primary: rgb(0x36f5ff), secondary: rgb(0x76a6b8), highlight: rgb(0xff3dae), ink: rgb(0x030912))
+    static let builtIn = ["cyberpunk": cyberpunk, "netrunner": netrunner]
 
     private static let defaults = UserDefaults(suiteName: "com.waxdred.skyland-cyberdeck")!
     private static let home = FileManager.default.homeDirectoryForCurrentUser
@@ -38,10 +41,13 @@ struct Theme {
     /// Names to pass to `theme`: built-ins, then the skyland themes.
     static func available() -> [String] {
         let files = (try? FileManager.default.contentsOfDirectory(atPath: themesDir.path)) ?? []
-        return ["cyberpunk", "skyland"] + files.filter { $0.hasSuffix(".css") }.map { String($0.dropLast(4)) }.sorted()
+        return ["cyberpunk", "netrunner", "skyland"] + files.filter { $0.hasSuffix(".css") }.map { String($0.dropLast(4)) }.sorted()
     }
 
-    static func load() -> Theme {
+    static func load() -> Theme { load(named: name) }
+
+    static func load(named name: String) -> Theme {
+        if let theme = builtIn[name] { return theme }
         guard let file = file(name), let css = try? String(contentsOf: file, encoding: .utf8) else { return cyberpunk }
         var colors: [String: NSColor] = [:]
         let regex = try! NSRegularExpression(pattern: #"@define-color\s+([A-Za-z0-9_]+)\s+#([0-9A-Fa-f]{6})\s*;"#)

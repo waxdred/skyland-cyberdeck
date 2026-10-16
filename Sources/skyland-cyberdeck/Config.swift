@@ -44,6 +44,17 @@ enum Config {
         [toast]
         seconds = 4.5
         width = 400
+
+        [hud]
+        widgets = "clock, calendar, herdr, sound, system, messages, launch" # shown, in this order
+        theme = "netrunner"      # the HUD's palette: netrunner, cyberpunk, skyland, any theme
+        clock-24h = true
+        clock-seconds = false
+        second-timezone = ""     # e.g. "America/New_York"
+        week-start = 0           # 0 = locale, 1 = Sunday, 2 = Monday
+        refresh-ms = 1000
+        opacity = 0.86
+        apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify" # quick launch, by app name
         """
 
     static let file: URL = {

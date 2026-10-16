@@ -20,6 +20,46 @@ skyland-cyberdeck launcher   # toggle
 Apps come from `/Applications` (and one folder down), `/System/Applications`,
 their `Utilities`, `/System/Library/CoreServices/Applications` and `~/Applications`.
 
+## HUD
+
+```sh
+skyland-cyberdeck hud   # toggle
+```
+
+A deck on the right of the screen under the mouse, with real data only:
+
+- **clock** (24 h or 12 h, seconds, a second time zone) and **calendar** (today
+  highlighted, `←` `→` change the month, the locale's week start or yours)
+- **herdr agents**: sessions, running, waiting for you, idle, the active ones
+  (`herdr pane list`); `UNAVAILABLE` when herdr is not running
+- **display & sound**: built-in display brightness, output volume and mute, output
+  device; the sliders change the real values
+- **system**: CPU (all cores) and RAM (used like Activity Monitor: app + wired +
+  compressed) with history, network throughput of the default interface, startup
+  disk, battery (time left only when macOS estimates it)
+- **messages** (the last two) and **quick launch** apps
+
+`esc` or a click outside closes it. Nothing is sampled while it is closed: the
+process ends with the deck. Its palette is `netrunner` (cyan); `[hud] theme = "skyland"`
+follows the skyland theme.
+
+```toml
+[hud]
+widgets = "clock, calendar, herdr, sound, system, messages, launch" # shown, in this order
+theme = "netrunner"        # or cyberpunk, skyland, any theme name
+clock-24h = true
+clock-seconds = false
+second-timezone = ""       # e.g. "America/New_York"
+week-start = 0             # 0 = locale, 1 = Sunday, 2 = Monday
+refresh-ms = 1000          # system metrics; herdr every 3 s, disk every 30 s
+opacity = 0.86
+apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify"   # quick launch, by app name
+```
+
+Not yet: Wi-Fi / Bluetooth / VPN tiles (Wi-Fi names need the Location permission),
+now playing, external display brightness (DDC). Focus / Do Not Disturb has no public
+API and will show as unavailable.
+
 ## Messages
 
 <p align="center"><img src="docs/messages.jpg" alt="Messages panel: neon contact cards over the screen" width="520"></p>

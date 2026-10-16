@@ -2,6 +2,12 @@
 
 Each `## vX.Y.Z` section is also the text of its GitHub release.
 
+## Unreleased
+
+- **HUD** (`skyland-cyberdeck hud`): clock, calendar, herdr agents, brightness and
+  volume, CPU / RAM / network / disk / battery, last messages, quick launch. Real data
+  only, sampled only while it is open. `[hud]` settings, `netrunner` palette.
+
 ## v0.1.0
 
 First release.
