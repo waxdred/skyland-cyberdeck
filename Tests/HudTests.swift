@@ -82,4 +82,10 @@ final class HudTests: XCTestCase {
         XCTAssertEqual(values["hud.refresh-ms"], "2000")
         XCTAssertEqual(values["colors.primary"], "#36f5ff") // # inside quotes is not a comment
     }
+
+    func testPreferredNetworks() {
+        let output = "Preferred networks on en0:\n\tFreebox-5E23E4\n\tCafé guest 👋\n\t\n"
+        XCTAssertEqual(parsePreferredNetworks(output), ["Freebox-5E23E4", "Café guest 👋"])
+        XCTAssertEqual(parsePreferredNetworks("Error: en1 is not a Wi-Fi interface."), [])
+    }
 }

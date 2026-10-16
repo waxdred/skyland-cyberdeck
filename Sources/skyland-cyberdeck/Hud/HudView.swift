@@ -40,29 +40,83 @@ struct Label: View {
 struct Card<Content: View>: View {
     var title: String?
     var elevated = false
+    /// what a click on the card does (title, empty space); its controls keep their own
+    var action: (() -> Void)?
     @ViewBuilder var content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let title { Text(title.uppercased()).font(Tok.mono(10, .semibold)).foregroundStyle(Tok.accent).kerning(1.6) }
+            if let title {
+                HStack(spacing: 4) {
+                    Text(title.uppercased()).font(Tok.mono(10, .semibold)).foregroundStyle(Tok.accent).kerning(1.6)
+                    if action != nil { Image(systemName: "arrow.up.right").font(.system(size: 8, weight: .bold)).foregroundStyle(Tok.accent.opacity(0.6)) }
+                }
+            }
             content
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(RoundedRectangle(cornerRadius: 9).fill(elevated ? Tok.elevated : Tok.surface))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Tok.accent.opacity(0.22), lineWidth: 1))
+        .hover(9, action: action)
     }
 }
 
-/// Glowing corner brackets around the whole deck.
+/// Hover feedback: the edge lights up, a soft glow, a slight lift, and the pointing
+/// hand on what does something when clicked. Reduce Motion: no lift.
+struct Hover: ViewModifier {
+    var radius: CGFloat
+    var action: (() -> Void)?
+    @State private var over = false
+    private let still = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    func body(content: Content) -> some View {
+        content
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Tok.accent.opacity(over ? 0.85 : 0), lineWidth: 1.2))
+            .shadow(color: Tok.accent.opacity(over ? 0.4 : 0), radius: 12)
+            .scaleEffect(over && !still ? 1.012 : 1)
+            .animation(.easeOut(duration: 0.16), value: over)
+            .contentShape(RoundedRectangle(cornerRadius: radius))
+            .onHover { inside in
+                over = inside
+                if action != nil { if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() } }
+            }
+            .onTapGesture { action?() }
+    }
+}
+
+extension View {
+    func hover(_ radius: CGFloat = 9, action: (() -> Void)? = nil) -> some View { modifier(Hover(radius: radius, action: action)) }
+}
+
+/// The deck outline: all four corners cut.
+struct CutFrame: Shape {
+    var cut: CGFloat = 22
+    func path(in r: CGRect) -> Path {
+        Path { p in
+            p.move(to: CGPoint(x: r.minX + cut, y: r.minY))
+            p.addLine(to: CGPoint(x: r.maxX - cut, y: r.minY))
+            p.addLine(to: CGPoint(x: r.maxX, y: r.minY + cut))
+            p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - cut))
+            p.addLine(to: CGPoint(x: r.maxX - cut, y: r.maxY))
+            p.addLine(to: CGPoint(x: r.minX + cut, y: r.maxY))
+            p.addLine(to: CGPoint(x: r.minX, y: r.maxY - cut))
+            p.addLine(to: CGPoint(x: r.minX, y: r.minY + cut))
+            p.closeSubpath()
+        }
+    }
+}
+
+/// The glowing corner pieces of the deck: arm, the cut, arm.
 struct DeckFrame: Shape {
-    var arm: CGFloat = 34
+    var cut: CGFloat = 22
+    var arm: CGFloat = 46
     func path(in r: CGRect) -> Path {
         Path { p in
             for (corner, dx, dy) in [(CGPoint(x: r.minX, y: r.minY), 1.0, 1.0), (CGPoint(x: r.maxX, y: r.minY), -1.0, 1.0),
                                      (CGPoint(x: r.minX, y: r.maxY), 1.0, -1.0), (CGPoint(x: r.maxX, y: r.maxY), -1.0, -1.0)] {
-                p.move(to: CGPoint(x: corner.x + dx * arm, y: corner.y))
-                p.addLine(to: corner)
-                p.addLine(to: CGPoint(x: corner.x, y: corner.y + dy * arm))
+                p.move(to: CGPoint(x: corner.x + dx * (cut + arm), y: corner.y))
+                p.addLine(to: CGPoint(x: corner.x + dx * cut, y: corner.y))
+                p.addLine(to: CGPoint(x: corner.x, y: corner.y + dy * cut))
+                p.addLine(to: CGPoint(x: corner.x, y: corner.y + dy * (cut + arm)))
             }
         }
     }
@@ -129,30 +183,40 @@ struct HudView: View {
                 Text("● ONLINE").font(Tok.mono(10, .bold)).foregroundStyle(Tok.ok)
                 Label(text: "Profile \(model.settings.theme)")
             }
-            row(left: shows("clock") ? AnyView(ClockCard(settings: model.settings)) : nil,
-                right: shows("calendar") ? AnyView(CalendarCard(model: model)) : nil)
-            row(left: shows("herdr") ? AnyView(HerdrCard(state: model.herdr)) : nil,
-                right: shows("sound") ? AnyView(SoundCard(model: model)) : nil)
-            if shows("system") { SystemCard(model: model) }
-            if shows("messages") { MessagesCard(messages: model.messages) }
-            if shows("launch") && !model.launchApps.isEmpty { LaunchCard(apps: model.launchApps) }
-            Text("ESC close     ← → month     a click outside closes").font(Tok.mono(9)).foregroundStyle(Tok.off)
+            Group {
+                row(left: shows("clock") ? AnyView(ClockCard(model: model)) : nil,
+                    right: shows("calendar") ? AnyView(CalendarCard(model: model)) : nil)
+                row(left: shows("connections") ? AnyView(ConnectionsCard(model: model)) : nil,
+                    right: shows("sound") ? AnyView(SoundCard(model: model)) : nil)
+                if shows("system") { SystemCard(model: model) }
+                row(left: shows("herdr") ? AnyView(HerdrCard(model: model)) : nil,
+                    right: shows("messages") ? AnyView(MessagesCard(model: model)) : nil, rightWidth: 360)
+                if shows("launch") && !model.launchApps.isEmpty { LaunchCard(apps: model.launchApps) }
+            }
+            .opacity(shown ? 1 : 0).offset(x: shown || still ? 0 : 24)
+            Text("ESC close     ← → month     click a card to open it     a click outside closes").font(Tok.mono(9)).foregroundStyle(Tok.off)
         }
-        .padding(20)
-        .frame(width: 760)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Tok.background.opacity(model.settings.opacity)))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16)) // blur what is behind
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Tok.accent.opacity(0.3), lineWidth: 1))
-        .overlay(DeckFrame().stroke(Tok.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round)).shadow(color: Tok.accent, radius: 6))
-        .padding(8)
+        .padding(24)
+        .frame(width: 780)
+        .background(CutFrame().fill(Tok.background.opacity(model.settings.opacity)))
+        .background(.ultraThinMaterial, in: CutFrame()) // blur what is behind
+        .overlay(CutFrame().stroke(Tok.accent.opacity(0.55), lineWidth: 1.2).shadow(color: Tok.accent.opacity(0.6), radius: 5))
+        .overlay(CutFrame(cut: 17).stroke(Tok.accent.opacity(0.14), lineWidth: 1).padding(6))
+        .overlay(DeckFrame().stroke(Tok.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            .shadow(color: Tok.accent, radius: 8).shadow(color: Tok.accent.opacity(0.6), radius: 16))
+        .padding(14)
+        .onAppear { withAnimation(.easeOut(duration: still ? 0 : 0.35).delay(0.05)) { shown = true } }
     }
 
+    @State private var shown = false
+    private let still = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+
     /// two cards side by side, the right one at the calendar width
-    @ViewBuilder private func row(left: AnyView?, right: AnyView?) -> some View {
+    @ViewBuilder private func row(left: AnyView?, right: AnyView?, rightWidth: CGFloat = 310) -> some View {
         if left != nil || right != nil {
             HStack(alignment: .top, spacing: 12) {
                 if let left { left }
-                if let right { right.frame(width: 310) }
+                if let right { right.frame(width: left == nil ? nil : rightWidth) }
             }
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -160,9 +224,10 @@ struct HudView: View {
 }
 
 struct ClockCard: View {
-    let settings: HudSettings
+    @ObservedObject var model: HudModel
+    var settings: HudSettings { model.settings }
     var body: some View {
-        Card {
+        Card(action: { model.open(app: "com.apple.clock") }) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 VStack(alignment: .leading, spacing: 10) {
                     Text(time(context.date, .current))
@@ -205,6 +270,7 @@ struct CalendarCard: View {
             HStack {
                 Text(month.formatted(.dateTime.month(.abbreviated).year()).uppercased())
                     .font(Tok.mono(15, .semibold)).foregroundStyle(Tok.accent).kerning(1.5)
+                    .hover(4) { model.open(app: "com.apple.iCal") }.help("Open Calendar")
                 Spacer()
                 Button { model.monthOffset -= 1 } label: { Image(systemName: "chevron.left") }.buttonStyle(.plain).help("Previous month")
                 Button { model.monthOffset += 1 } label: { Image(systemName: "chevron.right") }.buttonStyle(.plain).help("Next month")
@@ -221,6 +287,7 @@ struct CalendarCard: View {
                         .foregroundStyle(today ? Tok.background : Tok.text)
                         .frame(width: 30, height: 22)
                         .background(today ? RoundedRectangle(cornerRadius: 5).fill(Tok.accent).shadow(color: Tok.accent, radius: 5) : nil)
+                        .hover(5)
                         .accessibilityLabel(day.map { $0.formatted(date: .complete, time: .omitted) + (today ? ", today" : "") } ?? "")
                 }
             }
@@ -229,10 +296,10 @@ struct CalendarCard: View {
 }
 
 struct HerdrCard: View {
-    let state: HerdrState?
+    @ObservedObject var model: HudModel
     var body: some View {
-        Card(title: "Herdr // Agents") {
-            switch state {
+        Card(title: "Herdr // Agents", action: { model.openTerminal() }) {
+            switch model.herdr {
                 case nil:
                     Text("CONNECTING").font(Tok.mono(11)).foregroundStyle(Tok.dim)
                 case .unavailable:
@@ -277,7 +344,7 @@ struct HerdrCard: View {
 struct SoundCard: View {
     @ObservedObject var model: HudModel
     var body: some View {
-        Card(title: "Display & Sound") {
+        Card(title: "Display & Sound", action: { model.open(settings: "sound") }) {
             if let brightness = model.brightness {
                 slider("sun.max", "Brightness", brightness, help: "Built-in display brightness", set: { model.setBrightness($0) })
             }
@@ -316,7 +383,7 @@ struct SoundCard: View {
 struct SystemCard: View {
     @ObservedObject var model: HudModel
     var body: some View {
-        Card(title: "System") {
+        Card(title: "System", action: { model.open(app: "com.apple.ActivityMonitor") }) {
             HStack(alignment: .top, spacing: 12) {
                 HStack(spacing: 10) {
                     Ring(value: model.cpu, center: model.cpu.map { "\(Int(($0 * 100).rounded()))" } ?? "--")
@@ -371,9 +438,10 @@ struct SystemCard: View {
 }
 
 struct MessagesCard: View {
-    let messages: [Message]
+    @ObservedObject var model: HudModel
+    var messages: [Message] { model.messages }
     var body: some View {
-        Card(title: "Messages") {
+        Card(title: "Messages", action: { model.openMessagesPanel() }) {
             if messages.isEmpty {
                 Text("NO MESSAGES").font(Tok.mono(11)).foregroundStyle(Tok.off)
             }
@@ -394,6 +462,7 @@ struct MessagesCard: View {
                 }
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 7).fill(Tok.elevated))
+                .hover(7) { model.open(app: message.app) }
             }
         }
     }
@@ -405,14 +474,133 @@ struct LaunchCard: View {
         Card(title: "Quick Launch") {
             HStack(spacing: 12) {
                 ForEach(apps, id: \.id) { app in
-                    Button { Apps.launch(app) } label: {
-                        Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path)).resizable().frame(width: 34, height: 34)
-                            .padding(5).background(RoundedRectangle(cornerRadius: 8).fill(Tok.elevated))
-                    }
-                    .buttonStyle(.plain).help(app.name).accessibilityLabel("Launch \(app.name)")
+                    LaunchIcon(app: app)
                 }
                 Spacer()
             }
         }
+    }
+}
+
+struct LaunchIcon: View {
+    let app: AppEntry
+    @State private var over = false
+    private let still = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path)).resizable().frame(width: 34, height: 34)
+                .padding(5)
+                .background(RoundedRectangle(cornerRadius: 8).fill(over ? Tok.accent.opacity(0.18) : Tok.elevated))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Tok.accent.opacity(over ? 0.9 : 0.15), lineWidth: 1))
+                .shadow(color: Tok.accent.opacity(over ? 0.6 : 0), radius: 10)
+                .scaleEffect(over && !still ? 1.12 : 1)
+                .offset(y: over && !still ? -3 : 0)
+            Text(app.name.uppercased()).font(Tok.mono(8, .semibold)).foregroundStyle(over ? Tok.accent : .clear).lineLimit(1).frame(width: 64)
+        }
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: over)
+        .contentShape(Rectangle())
+        .onHover { inside in over = inside; if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() } }
+        .onTapGesture { Apps.launch(app) }
+        .help(app.name).accessibilityLabel("Launch \(app.name)").accessibilityAddTraits(.isButton)
+    }
+}
+
+struct ConnectionsCard: View {
+    @ObservedObject var model: HudModel
+    @State private var open: String? // "wifi" or "bluetooth": its list is shown
+    var body: some View {
+        Card(title: "Connections") {
+            HStack(spacing: 8) {
+                TileView(symbol: "wifi", title: "Wi-Fi", tile: model.wifi, selected: open == "wifi", toggle: { model.toggleWifi() }) {
+                    open = open == "wifi" ? nil : "wifi"
+                    if open == "wifi" { model.loadKnownNetworks() }
+                }
+                TileView(symbol: "dot.radiowaves.left.and.right", title: "Bluetooth", tile: model.bluetooth, selected: open == "bluetooth") {
+                    open = open == "bluetooth" ? nil : "bluetooth"
+                    if open == "bluetooth" { model.loadDevices() }
+                }
+                TileView(symbol: "airplayaudio", title: "AirDrop", tile: model.airdrop, selected: false) { model.open(settings: "airdrop") }
+            }
+            if open == "wifi" {
+                ListRows(title: "Known networks", rows: model.knownNetworks.map { ($0, $0, false) }, busy: model.busy,
+                         empty: "NO KNOWN NETWORK", settings: { model.open(settings: "wifi") }) { model.join($0) }
+            } else if open == "bluetooth" {
+                ListRows(title: "Paired devices", rows: model.devices.map { ($0.id, $0.name, $0.connected) }, busy: model.busy,
+                         empty: "NO PAIRED DEVICE", settings: { model.open(settings: "bluetooth") }) { id in
+                    if let device = model.devices.first(where: { $0.id == id }) { model.toggle(device) }
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.18), value: open)
+    }
+}
+
+/// Networks or devices: click one to join / connect (or disconnect a connected one).
+struct ListRows: View {
+    let title: String
+    let rows: [(id: String, name: String, connected: Bool)]
+    let busy: String?
+    let empty: String
+    let settings: () -> Void
+    let pick: (String) -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(text: title)
+            if rows.isEmpty { Text(empty).font(Tok.mono(10)).foregroundStyle(Tok.off) }
+            ForEach(rows.prefix(6), id: \.id) { row in
+                HStack {
+                    Image(systemName: row.connected ? "checkmark.circle.fill" : "circle").foregroundStyle(row.connected ? Tok.ok : Tok.dim)
+                    Text(row.name).font(Tok.sans(12)).foregroundStyle(Tok.text).lineLimit(1)
+                    Spacer()
+                    Text(busy == row.id ? "CONNECTING…" : row.connected ? "DISCONNECT" : "CONNECT").font(Tok.mono(8, .bold))
+                        .foregroundStyle(busy == row.id ? Tok.warn : Tok.accent)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Tok.elevated))
+                .hover(6) { if busy == nil { pick(row.id) } }
+            }
+            Text("SETTINGS…").font(Tok.mono(9, .bold)).foregroundStyle(Tok.dim).padding(.vertical, 3).hover(4, action: settings)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
+/// One connection: icon, name, what the system says, the state in words (not color only).
+struct TileView: View {
+    let symbol: String
+    let title: String
+    let tile: Tile?
+    let selected: Bool
+    var toggle: (() -> Void)?
+    let action: () -> Void
+    var body: some View {
+        let state = tile?.state
+        let color = state == .on ? Tok.accent : state == .off ? Tok.dim : Tok.off
+        VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Image(systemName: symbol).font(.system(size: 14, weight: .semibold)).foregroundStyle(state == .on ? Tok.background : color)
+                    .frame(width: 26, height: 26)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(state == .on ? Tok.accent : Tok.off.opacity(0.3)))
+                    .shadow(color: state == .on ? Tok.accent.opacity(0.6) : .clear, radius: 5)
+                Spacer()
+                if let toggle, state != .unavailable {
+                    Button(action: toggle) {
+                        Capsule().fill(state == .on ? Tok.accent : Tok.off).frame(width: 26, height: 14)
+                            .overlay(Circle().fill(Tok.text).frame(width: 10).offset(x: state == .on ? 6 : -6))
+                            .animation(.easeOut(duration: 0.15), value: state)
+                    }
+                    .buttonStyle(.plain).help(state == .on ? "Turn \(title) off" : "Turn \(title) on")
+                }
+            }
+            Text(title).font(Tok.sans(12, .semibold)).foregroundStyle(Tok.text)
+            Text(tile?.detail ?? "…").font(Tok.mono(9)).foregroundStyle(color).lineLimit(1).truncationMode(.tail)
+            Text(state == .on ? "ON" : state == .off ? "OFF" : state == nil ? "READING" : "UNAVAILABLE")
+                .font(Tok.mono(8, .bold)).foregroundStyle(color.opacity(0.8))
+        }
+        .padding(9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 8).fill(selected ? Tok.accent.opacity(0.16) : Tok.elevated))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Tok.accent.opacity(selected ? 0.8 : 0), lineWidth: 1))
+        .hover(8, action: action)
     }
 }

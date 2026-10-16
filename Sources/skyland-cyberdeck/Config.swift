@@ -46,7 +46,7 @@ enum Config {
         width = 400
 
         [hud]
-        widgets = "clock, calendar, herdr, sound, system, messages, launch" # shown, in this order
+        widgets = "clock, calendar, connections, sound, system, herdr, messages, launch" # shown
         theme = "netrunner"      # the HUD's palette: netrunner, cyberpunk, skyland, any theme
         clock-24h = true
         clock-seconds = false

@@ -33,6 +33,10 @@ A deck on the right of the screen under the mouse, with real data only:
 - **herdr agents**: sessions, running, waiting for you, idle, the active ones
   (`pane.list` on the herdr socket, no `herdr` process started); `UNAVAILABLE` when
   herdr is not running
+- **connections**: Wi-Fi (on / off switch; click it for the networks this Mac knows,
+  click one to join it), Bluetooth (click it for the paired devices, click one to
+  connect or disconnect it), AirDrop. The current network name and networks never
+  joined need the Location permission: "Settings…" opens Wi-Fi settings for those.
 - **display & sound**: built-in display brightness, output volume and mute, output
   device; the sliders change the real values
 - **system**: CPU (all cores) and RAM (used like Activity Monitor: app + wired +
@@ -40,14 +44,16 @@ A deck on the right of the screen under the mouse, with real data only:
   disk, battery (time left only when macOS estimates it)
 - **messages** (the last two) and **quick launch** apps
 
-`esc`, `alt-shift-d` or a click outside closes it; moving the mouse away does not (focus
+Hovering lights up what can be clicked: a card opens its app (Clock, Calendar, Activity
+Monitor, the terminal for herdr, the messages panel, Sound settings), a message opens
+its app. `esc`, `alt-shift-d` or a click outside closes it; moving the mouse away does not (focus
 follows the mouse in skyland). Nothing is sampled while it is closed: the
 process ends with the deck. Its palette is `netrunner` (cyan); `[hud] theme = "skyland"`
 follows the skyland theme.
 
 ```toml
 [hud]
-widgets = "clock, calendar, herdr, sound, system, messages, launch" # shown, in this order
+widgets = "clock, calendar, connections, sound, system, herdr, messages, launch" # shown
 theme = "netrunner"        # or cyberpunk, skyland, any theme name
 clock-24h = true
 clock-seconds = false
@@ -58,9 +64,7 @@ opacity = 0.86
 apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify"   # quick launch, by app name
 ```
 
-Not yet: Wi-Fi / Bluetooth / VPN tiles (Wi-Fi names need the Location permission),
-now playing, external display brightness (DDC). Focus / Do Not Disturb has no public
-API and will show as unavailable.
+Not yet: now playing, external display brightness (DDC).
 
 ## Messages
 

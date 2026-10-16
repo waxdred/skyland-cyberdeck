@@ -14,7 +14,7 @@ struct HudSettings {
     var theme: String
     var apps: [String]
 
-    static let allWidgets = ["clock", "calendar", "herdr", "sound", "system", "messages", "launch"]
+    static let allWidgets = ["clock", "calendar", "connections", "sound", "system", "herdr", "messages", "launch"]
     static let defaultApps = ["Finder", "Ghostty", "Terminal", "Visual Studio Code", "Firefox", "Safari", "Spotify", "Notes", "System Settings"]
 
     static func load() -> HudSettings {
@@ -77,6 +77,12 @@ final class HudModel: ObservableObject {
     @Published var volume: Float?
     @Published var muted: Bool?
     @Published var brightness: Float?
+    @Published var wifi: Tile?
+    @Published var bluetooth: Tile?
+    @Published var knownNetworks: [String] = []
+    @Published var devices: [BluetoothDevice] = []
+    @Published var busy: String? // network / device being joined
+    @Published var airdrop: Tile?
     @Published var messages: [Message] = []
     /// quick launch: the configured apps that are installed
     lazy var launchApps: [AppEntry] = {
@@ -114,7 +120,10 @@ final class HudModel: ObservableObject {
         }
         // slower readers: every ~5 s (interface, battery, audio devices), ~30 s (disk), ~3 s (herdr)
         let every = { (period: Double) in self.ticksCount == 1 || self.ticksCount % max(1, Int(period / seconds)) == 0 }
-        if every(5) { interface = SystemReaders.primaryInterface(); battery = SystemReaders.battery(); outputs = Audio.outputDevices() }
+        if every(5) {
+            interface = SystemReaders.primaryInterface(); battery = SystemReaders.battery(); outputs = Audio.outputDevices()
+            if settings.widgets.contains("connections") { readConnections() }
+        }
         if every(30) { storage = SystemReaders.storage() }
         if every(3) { messages = Messages.list(limit: 2); brightness = Brightness.get() }
         if every(3), settings.widgets.contains("herdr") {
@@ -143,6 +152,65 @@ final class HudModel: ObservableObject {
     func toggleMute() {
         guard let output, let muted, Audio.setMuted(!muted, output) else { return }
         self.muted = Audio.muted(output)
+    }
+
+    func readConnections() {
+        wifi = Connectivity.wifi()
+        bluetooth = Connectivity.bluetooth()
+        airdrop = Connectivity.airdrop()
+    }
+
+    func toggleWifi() {
+        guard let wifi, wifi.state != .unavailable else { return }
+        Connectivity.setWifi(wifi.state == .off)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.readConnections() } // what the system did
+    }
+
+    func loadKnownNetworks() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let networks = Connectivity.knownNetworks()
+            DispatchQueue.main.async { self.knownNetworks = networks }
+        }
+    }
+
+    func join(_ network: String) {
+        busy = network
+        DispatchQueue.global(qos: .userInitiated).async {
+            _ = Connectivity.join(network)
+            DispatchQueue.main.async { self.busy = nil; self.readConnections() } // the tile shows what happened
+        }
+    }
+
+    func loadDevices() { devices = Connectivity.pairedDevices() }
+
+    func toggle(_ device: BluetoothDevice) {
+        busy = device.id
+        DispatchQueue.global(qos: .userInitiated).async {
+            Connectivity.toggle(device)
+            DispatchQueue.main.async { self.busy = nil; self.loadDevices(); self.readConnections() }
+        }
+    }
+
+    /// Open something (an app, a settings pane, the messages panel) and close the deck.
+    func open(app bundleId: String) {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, _ in exit(0) }
+    }
+
+    func open(settings pane: String) {
+        Connectivity.openSettings(pane)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { exit(0) }
+    }
+
+    /// herdr lives in the terminal: Ghostty when installed, else Terminal.
+    func openTerminal() {
+        open(app: NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.mitchellh.ghostty") != nil ? "com.mitchellh.ghostty" : "com.apple.Terminal")
+    }
+
+    func openMessagesPanel() {
+        let me = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
+        try? Process.run(me, arguments: ["messages"])
+        exit(0)
     }
 
     func setBrightness(_ value: Float) {
