@@ -2,7 +2,8 @@
 
 Cyberpunk HUD pieces for macOS: neon red / cyan, cut corners, glow, scanlines and
 flicker. Made for [skyland](https://github.com/waxdred/skyland) (a Hyprland-like
-tiling window manager for macOS), works on its own with any window manager.
+tiling window manager for macOS), works on its own with any window manager: an apps
+launcher, a messages panel with a scripting API, and a HUD with live system data.
 
 <p align="center"><img src="docs/launcher.jpg" alt="Apps launcher: tilted neon deck with a curved column of apps" width="520"></p>
 
@@ -19,6 +20,79 @@ skyland-cyberdeck launcher   # toggle
 
 Apps come from `/Applications` (and one folder down), `/System/Applications`,
 their `Utilities`, `/System/Library/CoreServices/Applications` and `~/Applications`.
+
+## HUD
+
+<p align="center"><img src="docs/hud.jpg" alt="HUD: clock, calendar, connections, display and sound, system, herdr agents, messages and quick launch over the wallpaper" width="720"></p>
+
+```sh
+skyland-cyberdeck hud   # toggle (skyland: alt-shift-d)
+```
+
+A deck over the desktop, with real data only: what it cannot read says so instead
+of making something up.
+
+- **clock** (24 h or 12 h, seconds, a second time zone) and **calendar** (today
+  highlighted, `←` `→` or the arrows change the month, the locale's week start or yours)
+- **connections**: Wi-Fi (on / off switch; click it for the networks this Mac knows,
+  click one to join it), Bluetooth (click it for the paired devices, click one to
+  connect or disconnect it), AirDrop
+- **display & sound**: built-in display brightness, output volume and mute, output
+  device; the sliders change the real values
+- **system**: CPU (all cores) and RAM (used like Activity Monitor: app + wired +
+  compressed), network throughput of the default interface, startup disk, battery
+- **herdr agents**: sessions, running, waiting for you, idle, the active ones, read
+  from the herdr socket (no `herdr` process started); `UNAVAILABLE` when herdr is not
+  running
+- **messages** (the last two) and **quick launch** apps
+
+### Using it
+
+- **Click a card** to open its app: Clock, Calendar, Activity Monitor, the terminal
+  (herdr), the messages panel, Sound settings; a message opens its app. Hovering lights
+  up what reacts to a click.
+- **Drag it** by its header or the gaps between the cards: it opens there next time
+  (kept on screen); double-click those places to put it back on the right.
+- **Close it** with `esc`, `alt-shift-d` or a click outside. Moving the mouse away does
+  not close it (focus follows the mouse in skyland).
+- **Themes**: its own `netrunner` palette by default (cyan), `theme = "skyland"` follows
+  the skyland theme. A theme change (theme picker, light / dark, wallpaper colors)
+  shows within one refresh, without reopening it.
+- **Cost**: nothing runs while it is closed, the process ends with the deck. Open:
+  about 2% CPU (metrics every 2 s, the backdrop animated by Core Animation).
+
+### Settings
+
+`skyland-cyberdeck config init` writes them all; each key is optional.
+
+```toml
+[hud]
+widgets = "clock, calendar, connections, sound, system, herdr, messages, launch" # shown
+theme = "netrunner"      # or skyland, cyberpunk, any skyland theme name or .css file
+scale = 1.0              # size of the whole deck, 0.5 to 2
+opacity = 0.45           # deck background around the cards, 0 = clear
+blur = 0.35              # blur behind the deck, 0 = none, 1 = full
+card-opacity = 0.72      # card backgrounds, lower lets the backdrop through
+cyberspace = 0.6         # grid, data streams and scan line behind the cards, 0 = off
+clock-24h = true
+clock-seconds = false
+second-timezone = ""     # e.g. "America/New_York"
+week-start = 0           # 0 = locale, 1 = Sunday, 2 = Monday
+refresh-ms = 2000        # system metrics; herdr every 3 s, disk every 30 s
+apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify" # quick launch: app file names
+```
+
+Quick launch takes app file names (`System Settings`, not a translated name); apps
+outside `/Applications` (Finder) are found too, missing ones are skipped.
+
+### Limits
+
+- The current Wi-Fi network name and networks never joined need the Location
+  permission, which a command line tool cannot ask for: the Wi-Fi tile shows
+  `CONNECTED` with the signal, and "Settings…" opens Wi-Fi settings for new networks.
+- Brightness: built-in display only (external monitors need DDC).
+- Focus / Do Not Disturb has no public API: not shown.
+- Not yet: now playing.
 
 ## Messages
 
@@ -151,6 +225,7 @@ With skyland, bind it in `~/.config/aerospace/aerospace.toml`:
 [mode.main.binding]
 alt-d = 'exec-and-forget skyland-cyberdeck launcher'
 alt-shift-m = 'exec-and-forget skyland-cyberdeck messages'
+alt-shift-d = 'exec-and-forget skyland-cyberdeck hud'
 alt-shift-x = 'exec-and-forget skyland-cyberdeck dismiss --all'
 ```
 

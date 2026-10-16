@@ -44,6 +44,21 @@ enum Config {
         [toast]
         seconds = 4.5
         width = 400
+
+        [hud]
+        widgets = "clock, calendar, connections, sound, system, herdr, messages, launch" # shown
+        theme = "netrunner"      # the HUD's palette: netrunner, cyberpunk, skyland, any theme
+        clock-24h = true
+        clock-seconds = false
+        second-timezone = ""     # e.g. "America/New_York"
+        week-start = 0           # 0 = locale, 1 = Sunday, 2 = Monday
+        refresh-ms = 2000
+        opacity = 0.45           # deck background around the cards, 0 = clear
+        blur = 0.35              # blur behind the deck, 0 = none, 1 = full
+        card-opacity = 0.72      # card backgrounds, lower lets the backdrop through
+        cyberspace = 0.6         # grid, data streams and scan line behind the cards, 0 = off
+        scale = 1.0              # size of the whole deck, 0.5 to 2
+        apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify" # quick launch, by app name
         """
 
     static let file: URL = {
