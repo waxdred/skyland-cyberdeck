@@ -27,12 +27,16 @@ final class HudApp: NSObject, NSApplicationDelegate {
             HudApp.defaults.removeObject(forKey: "hudTopLeft")
             if let self { self.place(self.panel.frame.size) }
         }
-        NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel, queue: .main) { [weak self] _ in
-            guard let frame = self?.panel.frame else { return }
-            HudApp.defaults.set(NSStringFromPoint(NSPoint(x: frame.minX, y: frame.maxY)), forKey: "hudTopLeft")
+        // remembered when the user moves it; the moves the deck makes itself (placing,
+        // keeping it on screen at another scale) must not overwrite where it was put
+        NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel, queue: nil) { [weak self] _ in
+            guard let self, !self.placing else { return }
+            HudApp.defaults.set(NSStringFromPoint(NSPoint(x: self.panel.frame.minX, y: self.panel.frame.maxY)), forKey: "hudTopLeft")
         }
         model.start()
-        place(host.fittingSize) // once at open: an empty window gets no layout to report from
+        // once at open (an empty window gets no layout to report from): natural size, scaled
+        let natural = host.fittingSize
+        place(CGSize(width: natural.width * scale, height: natural.height * scale))
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             switch event.keyCode {
@@ -55,6 +59,7 @@ final class HudApp: NSObject, NSApplicationDelegate {
     private lazy var screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main ?? NSScreen.screens[0]
 
     static let defaults = UserDefaults(suiteName: "com.waxdred.skyland-cyberdeck")!
+    private var placing = false
 
     /// Where it was dragged last (its top-left corner stays put when it grows), else on
     /// the right of the screen it opened on, vertically centered.
@@ -71,7 +76,11 @@ final class HudApp: NSObject, NSApplicationDelegate {
             frame.origin.x = min(max(frame.minX, visible.minX), visible.maxX - frame.width)
             frame.origin.y = min(max(frame.minY, visible.minY), visible.maxY - frame.height)
         }
-        if frame != panel.frame { panel.setFrame(frame, display: true) }
+        if frame != panel.frame {
+            placing = true
+            panel.setFrame(frame, display: true)
+            placing = false
+        }
     }
 
     // Not closed when it loses focus: skyland's focus follows the mouse, so leaving
