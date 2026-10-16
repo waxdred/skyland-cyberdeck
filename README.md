@@ -85,6 +85,25 @@ skyland-cyberdeck launcher --theme 43pr-nord   # this call only
   by name from `~/.config/skyland/themes` or by path: `accent` is the primary color,
   `highlight` the secondary, `term3` the highlight and `bg` the background tint
 
+## Settings
+
+```sh
+skyland-cyberdeck config init   # writes ~/.config/skyland-cyberdeck/config.toml with the defaults
+```
+
+Every key is optional; changes apply at the next open.
+
+- `[general]`: `theme`, `font` (titles and app names: a family such as `"Futura"` or a
+  PostScript name), `mono-font` (labels, search, footers), `font-scale`, `uppercase`,
+  `scanlines`, `glow` and `tint` (strength, 0 = none), `footer` (key hints)
+- `[colors]`: `primary`, `secondary`, `highlight`, `ink` as `"#rrggbb"`, over the theme
+- `[launcher]`: `title`, `subtitle`, `placeholder`, `rows`, `row-width`, `row-height`,
+  `curve`, `tilt`
+- `[messages]`: `title`, `subtitle` (`{count}` = number of messages), `width`, `card-height`
+- `[toast]`: `seconds`, `width`
+
+`SKYLAND_CYBERDECK_CONFIG=<file>` reads another file.
+
 ## Integrations
 
 ### herdr: agent finished / needs you

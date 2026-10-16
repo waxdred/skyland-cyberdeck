@@ -10,8 +10,9 @@ final class KeyPanel: NSPanel {
 }
 
 final class LauncherView: NSView {
-    static let visible = 9
-    let rowHeight: CGFloat = 50, rowWidth: CGFloat = 430, curve: CGFloat = 46
+    static let visible = max(1, Config.int("launcher.rows", 9)) | 1 // odd: the selection in the middle
+    let rowHeight = Config.number("launcher.row-height", 50), rowWidth = Config.number("launcher.row-width", 430)
+    let curve = Config.number("launcher.curve", 46), tiltAmount = Config.number("launcher.tilt", 0.06)
 
     var apps: [AppEntry] = []
     var shown: [AppEntry] = []
@@ -72,10 +73,10 @@ final class LauncherView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         // eye implant overlay: the screen stays visible behind a light tint,
         // scanlines and a red vignette on the left
-        Neon.ink.withAlphaComponent(0.10).setFill()
+        Neon.ink.withAlphaComponent(0.10 * Neon.tint).setFill()
         bounds.fill()
         scanlines(bounds, color: .black, alpha: 0.10)
-        NSGradient(starting: Neon.red.withAlphaComponent(0.14), ending: .clear)!
+        NSGradient(starting: Neon.red.withAlphaComponent(0.14 * Neon.tint), ending: .clear)!
             .draw(in: NSRect(x: 0, y: 0, width: bounds.width * 0.55, height: bounds.height), angle: 0)
 
         let deck = self.deck
@@ -83,22 +84,22 @@ final class LauncherView: NSView {
         // HUD tilt: the deck rises slightly to the right
         let tilt = NSAffineTransform()
         tilt.translateX(by: left, yBy: deck.midY)
-        tilt.transformStruct.m12 = -0.06
+        tilt.transformStruct.m12 = -tiltAmount
         tilt.translateX(by: -left, yBy: -deck.midY)
         NSGraphicsContext.saveGraphicsState()
         tilt.concat()
         // header
-        neonText("APPS LAUNCHER", at: NSPoint(x: left, y: deck.minY - 300), font: Neon.title(22, .bold), color: Neon.cyan, glow: 6, kern: 3)
-        neonText("// CYBERDECK — RUNNING", at: NSPoint(x: left + 2, y: deck.minY - 276), font: Neon.mono(12, .semibold), color: Neon.cyan, glow: 4, alpha: 0.8)
+        neonText(Config.string("launcher.title", "APPS LAUNCHER"), at: NSPoint(x: left, y: deck.minY - 300 * Neon.scale), font: Neon.title(22, .bold), color: Neon.cyan, glow: 6, kern: 3)
+        neonText(Config.string("launcher.subtitle", "// CYBERDECK — RUNNING"), at: NSPoint(x: left + 2, y: deck.minY - 276 * Neon.scale), font: Neon.mono(12, .semibold), color: Neon.cyan, glow: 4, alpha: 0.8)
         Neon.red.withAlphaComponent(0.6).setFill()
-        NSRect(x: left, y: deck.minY - 256, width: rowWidth, height: 1.5).fill()
+        NSRect(x: left, y: deck.minY - 256 * Neon.scale, width: rowWidth, height: 1.5).fill()
         // search line
-        let prompt = "> " + (query.isEmpty ? "" : query.uppercased()) + (cursorOn ? "_" : " ")
-        neonText(prompt, at: NSPoint(x: left, y: deck.minY - 242), font: Neon.mono(20, .bold), color: Neon.yellow, glow: 8)
+        let prompt = "> " + Neon.caps(query) + (cursorOn ? "_" : " ")
+        neonText(prompt, at: NSPoint(x: left, y: deck.minY - 242 * Neon.scale), font: Neon.mono(20, .bold), color: Neon.yellow, glow: 8)
         if query.isEmpty {
-            neonText("TYPE TO SEARCH", at: NSPoint(x: left + 48, y: deck.minY - 238), font: Neon.mono(14), color: Neon.yellow, glow: 0, alpha: 0.7)
+            neonText(Config.string("launcher.placeholder", "TYPE TO SEARCH"), at: NSPoint(x: left + 48 * Neon.scale, y: deck.minY - 238 * Neon.scale), font: Neon.mono(14), color: Neon.yellow, glow: 0, alpha: 0.7)
         }
-        neonText("\(shown.count) / \(apps.count)", at: NSPoint(x: left + rowWidth - 70, y: deck.minY - 238), font: Neon.mono(12), color: Neon.cyan, glow: 0, alpha: 0.9)
+        neonText("\(shown.count) / \(apps.count)", at: NSPoint(x: left + rowWidth - 70 * Neon.scale, y: deck.minY - 238 * Neon.scale), font: Neon.mono(12), color: Neon.cyan, glow: 0, alpha: 0.9)
 
         // rows, far ones first so the selection is on top
         let half = Self.visible / 2
@@ -114,7 +115,7 @@ final class LauncherView: NSView {
         NSGraphicsContext.restoreGraphicsState()
         // footer
         let footer = "TYPE  search      ↑ ↓ / SCROLL  move      ↩ / CLICK  launch      ESC  close"
-        neonText(footer, at: NSPoint(x: left, y: bounds.maxY - 60), font: Neon.mono(11, .semibold), color: Neon.cyan, glow: 0, alpha: 0.9)
+        if Neon.footer { neonText(footer, at: NSPoint(x: left, y: bounds.maxY - 60), font: Neon.mono(11, .semibold), color: Neon.cyan, glow: 0, alpha: 0.9) }
     }
 
     /// Index of the row `offset` away from the selection: the list wraps like a wheel
@@ -154,10 +155,10 @@ final class LauncherView: NSView {
                                                  from: .zero, operation: .sourceOver, fraction: fade, respectFlipped: true, hints: nil)
         let font = Neon.title(focus ? 21 : 17, focus ? .bold : .semibold)
         let textY = rect.midY - font.capHeight / 2 - (font.ascender - font.capHeight)
-        neonText(app.name.uppercased(), at: NSPoint(x: rect.minX + iconSize + 24, y: textY), font: font,
+        neonText(Neon.caps(app.name), at: NSPoint(x: rect.minX + iconSize + 24, y: textY), font: font,
                  color: focus ? NSColor.white : Neon.cyan, glow: focus ? 10 : 3, alpha: min(1, fade + 0.2), kern: 1.5)
         let tag = String(format: "0x%02X", index)
-        neonText(tag, at: NSPoint(x: rect.maxX - 52, y: rect.midY - 7), font: Neon.mono(11), color: focus ? Neon.red : Neon.cyan, glow: 0, alpha: 0.7 * fade)
+        neonText(tag, at: NSPoint(x: rect.maxX - 52 * Neon.scale, y: rect.midY - 7 * Neon.scale), font: Neon.mono(11), color: focus ? Neon.red : Neon.cyan, glow: 0, alpha: 0.7 * fade)
     }
 
     // MARK: mouse
@@ -177,7 +178,7 @@ final class LauncherView: NSView {
         let half = Self.visible / 2
         // undo the tilt: m12 shears y by x around (deck.minX, deck.midY)
         let deck = self.deck
-        let flat = NSPoint(x: point.x, y: point.y + 0.06 * (point.x - deck.minX))
+        let flat = NSPoint(x: point.x, y: point.y + tiltAmount * (point.x - deck.minX))
         for offset in -half ... half where rowIndex(offset) != nil {
             if rowRect(offset, in: deck).insetBy(dx: -4, dy: -4).contains(flat) {
                 if offset == 0 { Apps.launch(shown[selected]) } else { move(offset) }

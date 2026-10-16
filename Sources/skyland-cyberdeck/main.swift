@@ -14,6 +14,8 @@ let usage = """
       theme [name] | theme list     colors: cyberpunk (default), skyland (the current skyland
                                     theme), a skyland theme name (43pr-dracula...) or a .css file;
                                     no name: print the current one
+      config [init]                 print the config file path; init writes it with the defaults
+                                    (fonts, sizes, titles, colors: ~/.config/skyland-cyberdeck)
     any command: --theme <name>     use that theme for this call only
     """
 
@@ -60,7 +62,7 @@ switch args.first {
                                    subtitle: option("-s", "--subtitle", in: args) ?? "", body: option("-b", "--body", in: args) ?? "")
         print(message.id)
         if args.contains("--quiet") { exit(0) }
-        run(ToastApp(message, seconds: option("--seconds", in: args).flatMap(Double.init) ?? 4.5))
+        run(ToastApp(message, seconds: option("--seconds", in: args).flatMap(Double.init) ?? Double(Config.number("toast.seconds", 4.5))))
     case "list":
         let messages = Messages.list(includeDismissed: args.contains("--all"), limit: option("--limit", in: args).flatMap(Int.init) ?? 50)
         if args.contains("--json") {
@@ -84,6 +86,8 @@ switch args.first {
         } else {
             fail("skyland-cyberdeck: unknown theme '\(args[1])' (skyland-cyberdeck theme list)")
         }
+    case "config":
+        if args.count > 1 && args[1] == "init" { Config.initFile() } else { print(Config.file.path) }
     case "-h", "--help", "help":
         print(usage)
     default:

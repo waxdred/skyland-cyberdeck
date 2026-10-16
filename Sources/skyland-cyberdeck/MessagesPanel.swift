@@ -35,17 +35,17 @@ func drawCard(_ message: Message, in rect: NSRect, focus: Bool, alpha: CGFloat) 
 
     let icon = rect.minX + 18
     if let image = message.appIcon {
-        image.draw(in: NSRect(x: icon, y: rect.minY + 12, width: 30, height: 30), from: .zero, operation: .sourceOver,
+        image.draw(in: NSRect(x: icon, y: rect.minY + 12 * Neon.scale, width: 30 * Neon.scale, height: 30 * Neon.scale), from: .zero, operation: .sourceOver,
                    fraction: alpha, respectFlipped: true, hints: nil)
     } else {
         neonText("◆", at: NSPoint(x: icon + 6, y: rect.minY + 14), font: Neon.title(20), color: Neon.red, glow: 6, alpha: alpha)
     }
-    let text = icon + 42, width = rect.maxX - text - 14
-    neonText(message.appName.uppercased(), at: NSPoint(x: text, y: rect.minY + 10), font: Neon.mono(11, .bold), color: Neon.cyan, glow: 2, alpha: alpha, kern: 1)
-    neonText(stamp(message.date), at: NSPoint(x: rect.maxX - 54, y: rect.minY + 10), font: Neon.mono(11), color: Neon.yellow, glow: 0, alpha: 0.9 * alpha)
+    let text = icon + 42 * Neon.scale, width = rect.maxX - text - 14
+    neonText(Neon.caps(message.appName), at: NSPoint(x: text, y: rect.minY + 10 * Neon.scale), font: Neon.mono(11, .bold), color: Neon.cyan, glow: 2, alpha: alpha, kern: 1)
+    neonText(stamp(message.date), at: NSPoint(x: rect.maxX - 54 * Neon.scale, y: rect.minY + 10 * Neon.scale), font: Neon.mono(11), color: Neon.yellow, glow: 0, alpha: 0.9 * alpha)
     let title = [message.title, message.subtitle].filter { !$0.isEmpty }.joined(separator: " — ")
-    clipped(title, NSRect(x: text, y: rect.minY + 26, width: width, height: 20), Neon.title(17, .bold), .white, alpha, lines: 1)
-    clipped(message.body, NSRect(x: text, y: rect.minY + 48, width: width, height: rect.height - 56), Neon.mono(12), Neon.cyan, alpha * 0.95, lines: 2)
+    clipped(title, NSRect(x: text, y: rect.minY + 26 * Neon.scale, width: width, height: 20 * Neon.scale), Neon.title(17, .bold), .white, alpha, lines: 1)
+    clipped(message.body, NSRect(x: text, y: rect.minY + 48 * Neon.scale, width: width, height: rect.height - 56 * Neon.scale), Neon.mono(12), Neon.cyan, alpha * 0.95, lines: 2)
 }
 
 private func clipped(_ text: String, _ rect: NSRect, _ font: NSFont, _ color: NSColor, _ alpha: CGFloat, lines: Int) {
@@ -63,7 +63,7 @@ private func clipped(_ text: String, _ rect: NSRect, _ font: NSFont, _ color: NS
 }
 
 final class MessagesView: NSView {
-    let cardHeight: CGFloat = 92, width: CGFloat = 470
+    let cardHeight = Config.number("messages.card-height", 92), width = Config.number("messages.width", 470)
     var messages: [Message] = [] { didSet { selected = min(selected, max(0, messages.count - 1)); needsDisplay = true } }
     var selected = 0 { didSet { needsDisplay = true } }
     private var top = 0 // first visible card
@@ -71,7 +71,7 @@ final class MessagesView: NSView {
     override var isFlipped: Bool { true }
 
     var column: NSRect { NSRect(x: bounds.maxX - width - 60, y: 70, width: width, height: bounds.height - 140) }
-    var visibleCount: Int { max(1, Int((column.height - 110) / (cardHeight + 10))) }
+    var visibleCount: Int { max(1, Int((column.height - 110 * Neon.scale) / (cardHeight + 10))) }
 
     func reload() { messages = Messages.list() }
 
@@ -81,21 +81,21 @@ final class MessagesView: NSView {
     }
 
     func cardRect(_ position: Int) -> NSRect {
-        NSRect(x: column.minX + CGFloat(position) * 4, y: column.minY + 96 + CGFloat(position) * (cardHeight + 10), width: width, height: cardHeight)
+        NSRect(x: column.minX + CGFloat(position) * 4, y: column.minY + 96 * Neon.scale + CGFloat(position) * (cardHeight + 10), width: width, height: cardHeight)
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        Neon.ink.withAlphaComponent(0.08).setFill()
+        Neon.ink.withAlphaComponent(0.08 * Neon.tint).setFill()
         bounds.fill()
         scanlines(bounds, color: .black, alpha: 0.08)
-        NSGradient(starting: .clear, ending: Neon.red.withAlphaComponent(0.14))!
+        NSGradient(starting: .clear, ending: Neon.red.withAlphaComponent(0.14 * Neon.tint))!
             .draw(in: NSRect(x: bounds.width * 0.5, y: 0, width: bounds.width * 0.5, height: bounds.height), angle: 0)
 
         let column = self.column
-        neonText("MESSAGES", at: NSPoint(x: column.minX, y: column.minY), font: Neon.title(56), color: Neon.red, glow: 14, kern: 3)
-        neonText("// \(messages.count) IN BUFFER", at: NSPoint(x: column.minX + 4, y: column.minY + 66), font: Neon.mono(12, .semibold), color: Neon.cyan, glow: 4)
+        neonText(Config.string("messages.title", "MESSAGES"), at: NSPoint(x: column.minX, y: column.minY), font: Neon.title(56), color: Neon.red, glow: 14, kern: 3)
+        neonText(Config.string("messages.subtitle", "// {count} IN BUFFER").replacingOccurrences(of: "{count}", with: "\(messages.count)"), at: NSPoint(x: column.minX + 4, y: column.minY + 66 * Neon.scale), font: Neon.mono(12, .semibold), color: Neon.cyan, glow: 4)
         Neon.red.withAlphaComponent(0.6).setFill()
-        NSRect(x: column.minX, y: column.minY + 86, width: width, height: 1.5).fill()
+        NSRect(x: column.minX, y: column.minY + 86 * Neon.scale, width: width, height: 1.5).fill()
 
         if selected < top { top = selected }
         if selected >= top + visibleCount { top = selected - visibleCount + 1 }
@@ -105,10 +105,10 @@ final class MessagesView: NSView {
             drawCard(messages[index], in: cardRect(position), focus: index == selected, alpha: 1)
         }
         if messages.isEmpty {
-            neonText("// NO MESSAGES", at: NSPoint(x: column.minX, y: column.minY + 110), font: Neon.mono(16, .bold), color: Neon.cyan, glow: 6)
+            neonText("// NO MESSAGES", at: NSPoint(x: column.minX, y: column.minY + 110 * Neon.scale), font: Neon.mono(16, .bold), color: Neon.cyan, glow: 6)
         }
         let footer = "↑ ↓  move    ↩  open app    X  dismiss    ⇧X  dismiss all    ESC  close"
-        neonText(footer, at: NSPoint(x: column.minX, y: column.maxY + 20), font: Neon.mono(11, .semibold), color: Neon.cyan, glow: 0, alpha: 0.9)
+        if Neon.footer { neonText(footer, at: NSPoint(x: column.minX, y: column.maxY + 20), font: Neon.mono(11, .semibold), color: Neon.cyan, glow: 0, alpha: 0.9) }
     }
 
     func open(_ message: Message) {
@@ -200,7 +200,7 @@ final class ToastApp: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let size = NSSize(width: 400, height: 96)
+        let size = NSSize(width: Config.number("toast.width", 400), height: Config.number("messages.card-height", 92) + 4)
         let slot = ToastSlots.claim()
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main ?? NSScreen.screens[0]
         let frame = NSRect(x: screen.visibleFrame.maxX - size.width - 16,

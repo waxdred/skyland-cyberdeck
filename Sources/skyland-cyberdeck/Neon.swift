@@ -6,18 +6,38 @@ import AppKit
 /// `yellow` the highlight and `ink` the dark background tint.
 enum Neon {
     static let palette = Theme.load()
-    static var red: NSColor { palette.primary }
-    static var cyan: NSColor { palette.secondary }
-    static var yellow: NSColor { palette.highlight }
-    static var ink: NSColor { palette.ink }
+    static let red = Config.color("colors.primary") ?? palette.primary
+    static let cyan = Config.color("colors.secondary") ?? palette.secondary
+    static let yellow = Config.color("colors.highlight") ?? palette.highlight
+    static let ink = Config.color("colors.ink") ?? palette.ink
 
-    /// Condensed display font, falls back to the system font.
+    static let scale = Config.number("general.font-scale", 1)
+    static let glow = Config.number("general.glow", 1)
+    static let tint = Config.number("general.tint", 1)
+    static let scanlines = Config.bool("general.scanlines", true)
+    static let footer = Config.bool("general.footer", true)
+    static let uppercase = Config.bool("general.uppercase", true)
+    private static let titleFont = Config.string("general.font", "")
+    private static let monoFont = Config.string("general.mono-font", "")
+
+    static func caps(_ text: String) -> String { uppercase ? text.uppercased() : text }
+
+    /// Display font: [general] font, else the condensed system font.
     static func title(_ size: CGFloat, _ weight: NSFont.Weight = .heavy) -> NSFont {
-        NSFont.systemFont(ofSize: size, weight: weight, width: .condensed)
+        custom(titleFont, size * scale, weight) ?? NSFont.systemFont(ofSize: size * scale, weight: weight, width: .condensed)
     }
 
+    /// Label font: [general] mono-font, else the monospaced system font.
     static func mono(_ size: CGFloat, _ weight: NSFont.Weight = .medium) -> NSFont {
-        NSFont.monospacedSystemFont(ofSize: size, weight: weight)
+        custom(monoFont, size * scale, weight) ?? NSFont.monospacedSystemFont(ofSize: size * scale, weight: weight)
+    }
+
+    /// A family in the closest weight (NSFontManager 0-15, 5 = regular, 9 = bold), or a
+    /// PostScript name as is.
+    private static func custom(_ name: String, _ size: CGFloat, _ weight: NSFont.Weight) -> NSFont? {
+        guard !name.isEmpty else { return nil }
+        let managerWeight = weight >= .heavy ? 11 : weight >= .bold ? 9 : weight >= .semibold ? 8 : weight >= .medium ? 6 : 5
+        return NSFontManager.shared.font(withFamily: name, traits: [], weight: managerWeight, size: size) ?? NSFont(name: name, size: size)
     }
 }
 
@@ -48,7 +68,7 @@ func neonText(_ text: String, at point: NSPoint, font: NSFont, color: NSColor, g
     NSGraphicsContext.saveGraphicsState()
     let shadow = NSShadow()
     shadow.shadowColor = color.withAlphaComponent(0.9 * alpha)
-    shadow.shadowBlurRadius = glow
+    shadow.shadowBlurRadius = glow * Neon.glow
     shadow.shadowOffset = .zero
     shadow.set()
     (text as NSString).draw(at: point, withAttributes: [.font: font, .foregroundColor: color.withAlphaComponent(alpha), .kern: kern])
@@ -60,7 +80,7 @@ func neonStroke(_ path: NSBezierPath, color: NSColor, width: CGFloat, glow: CGFl
     NSGraphicsContext.saveGraphicsState()
     let shadow = NSShadow()
     shadow.shadowColor = color.withAlphaComponent(alpha)
-    shadow.shadowBlurRadius = glow
+    shadow.shadowBlurRadius = glow * Neon.glow
     shadow.shadowOffset = .zero
     shadow.set()
     color.withAlphaComponent(alpha).setStroke()
@@ -71,6 +91,7 @@ func neonStroke(_ path: NSBezierPath, color: NSColor, width: CGFloat, glow: CGFl
 
 /// Horizontal scanlines over `rect`.
 func scanlines(_ rect: NSRect, color: NSColor, alpha: CGFloat, step: CGFloat = 3) {
+    guard Neon.scanlines else { return }
     color.withAlphaComponent(alpha).setFill()
     var y = rect.minY
     while y < rect.maxY {

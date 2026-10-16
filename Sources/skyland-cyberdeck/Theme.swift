@@ -17,11 +17,12 @@ struct Theme {
     private static let home = FileManager.default.homeDirectoryForCurrentUser
     static let themesDir = home.appending(path: ".config/skyland/themes")
 
-    /// Theme name: --theme <name> of this call, else the saved one, else cyberpunk.
+    /// Theme name: --theme <name> of this call, else the saved one, else [general]
+    /// theme of the config, else cyberpunk.
     static var name: String {
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--theme"), args.indices.contains(index + 1) { return args[index + 1] }
-        return defaults.string(forKey: "theme") ?? "cyberpunk"
+        return defaults.string(forKey: "theme") ?? Config.string("general.theme", "cyberpunk")
     }
 
     static func save(_ name: String) { defaults.set(name, forKey: "theme") }
