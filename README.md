@@ -97,6 +97,8 @@ outside `/Applications` (Finder) are found too, missing ones are skipped.
 
 ## Audio deck
 
+<p align="center"><img src="docs/audio.jpg" alt="Audio deck: the audioware wave over the cyberspace grid, now playing, output port, sources, cyberpunk theme" width="720"></p>
+
 ```sh
 skyland-cyberdeck audio   # toggle
 ```
@@ -128,7 +130,7 @@ neon grid and reacts to what plays, a flat line when nothing does.
 
 ```toml
 [audio]
-theme = ""               # "" = the [hud] theme, or any theme name or .css file
+theme = "cyberpunk"      # neon red / cyan by default; netrunner, skyland, any theme name or .css file
 scale = 1.0              # size of the whole deck, 0.5 to 2
 opacity = 0.55           # deck background around the cards, 0 = clear
 blur = 0.35              # blur behind the deck, 0 = none, 1 = full

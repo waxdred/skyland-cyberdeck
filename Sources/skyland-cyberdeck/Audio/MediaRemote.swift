@@ -109,14 +109,52 @@ enum MediaRemote {
     }
 }
 
-/// The adapter's stream: one perl process for the deck's life, ended with it.
+/// The adapter's stream: one perl process for the deck's life, ended with it. The stream
+/// can go silent while perl lives on (a new YouTube video, another app taking over: seen
+/// in skyland's media widget): every 4 s the real state is asked once, and when it differs
+/// from the last one sent it is sent and the stream is started again.
 final class NowPlayingStream {
     var onChange: (NowPlaying?) -> Void = { _ in }
     /// false: the adapter library is not installed (now playing unavailable)
     private(set) var available = MediaRemote.files != nil
     private var process: Process?
+    private var last: NowPlaying?
+    private var watchdog: Timer?
 
     func start() {
+        startStream()
+        watchdog = watchdog ?? Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in self?.check() }
+    }
+
+    private func send(_ info: NowPlaying?) {
+        last = info
+        onChange(info)
+    }
+
+    /// The real state, compared on what the deck shows (not the elapsed time, it moves).
+    private func check() {
+        guard let probe = MediaRemote.process(["get", "--micros"]) else { return }
+        let pipe = Pipe()
+        probe.standardOutput = pipe
+        let shown = last
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard (try? probe.run()) != nil else { return }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            probe.waitUntilExit()
+            let real = ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any]).flatMap(NowPlaying.init)
+            guard real?.title != shown?.title || real?.playing != shown?.playing || real?.bundleID != shown?.bundleID
+                || (real?.artwork == nil) != (shown?.artwork == nil) else { return }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.send(real)
+                self.process?.terminationHandler = nil
+                self.process?.terminate()
+                self.startStream()
+            }
+        }
+    }
+
+    private func startStream() {
         guard let process = MediaRemote.process(["stream", "--no-diff", "--micros", "--debounce=100"]) else {
             available = false
             return
@@ -134,7 +172,7 @@ final class NowPlayingStream {
                 guard let json = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
                       let payload = json["payload"] as? [String: Any] else { continue }
                 let info = NowPlaying(payload)
-                DispatchQueue.main.async { self?.onChange(info) }
+                DispatchQueue.main.async { self?.send(info) }
             }
         }
         guard (try? process.run()) != nil else { available = false; return }

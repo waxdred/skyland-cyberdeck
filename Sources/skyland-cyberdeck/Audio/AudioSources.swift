@@ -19,8 +19,7 @@ enum AudioSources {
         var apps: [pid_t: AudioSource] = [:]
         for process in processes() where process.running {
             guard let app = owner(of: process.pid, bundleID: process.bundleID) else { continue }
-            apps[app.processIdentifier] = AudioSource(id: app.processIdentifier, name: app.localizedName ?? app.bundleIdentifier ?? "?",
-                                                      bundleID: app.bundleIdentifier, live: true)
+            apps[app.pid] = AudioSource(id: app.pid, name: app.name, bundleID: app.bundleID, live: true)
         }
         return apps.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
@@ -71,28 +70,75 @@ enum AudioSources {
         return value?.takeRetainedValue() as String?
     }
 
-    /// The regular app a process belongs to: itself or an ancestor; WebKit's audio
-    /// service (launched by launchd) is Safari's; a helper named after its app
-    /// (com.google.Chrome.helper) is that app's.
-    static func owner(of pid: pid_t, bundleID: String?) -> NSRunningApplication? {
+    struct App: Equatable {
+        let pid: pid_t
+        let name: String
+        let bundleID: String?
+    }
+
+    /// The app a process belongs to: itself or an ancestor known to LaunchServices; else
+    /// the outermost .app of its executable path (an app started from a terminal or tmux
+    /// is not in LaunchServices: NSRunningApplication does not see it, Brave included);
+    /// WebKit's audio service (launched by launchd) is Safari's; a helper named after its
+    /// app (com.google.Chrome.helper) is that app's.
+    static func owner(of pid: pid_t, bundleID: String?) -> App? {
         var current = pid
         for _ in 0 ..< 6 {
-            if let app = NSRunningApplication(processIdentifier: current), app.activationPolicy == .regular { return app }
+            if let app = NSRunningApplication(processIdentifier: current), app.activationPolicy == .regular {
+                return App(pid: app.processIdentifier, name: app.localizedName ?? app.bundleIdentifier ?? "?", bundleID: app.bundleIdentifier)
+            }
             guard let parent = parentPID(current), parent > 1 else { break }
             current = parent
         }
+        if let app = bundleOwner(of: pid) { return app }
         guard let bundleID else { return nil }
-        if bundleID.hasPrefix("com.apple.WebKit") {
-            return NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Safari").first
+        let running = { (id: String) in
+            NSRunningApplication.runningApplications(withBundleIdentifier: id).first { $0.activationPolicy == .regular }
+                .map { App(pid: $0.processIdentifier, name: $0.localizedName ?? id, bundleID: id) }
         }
+        if bundleID.hasPrefix("com.apple.WebKit") { return running("com.apple.Safari") }
         var parts = bundleID.split(separator: ".")
         while parts.count > 2 {
             parts.removeLast()
-            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: parts.joined(separator: ".")).first(where: { $0.activationPolicy == .regular }) {
-                return app
-            }
+            if let app = running(parts.joined(separator: ".")) { return app }
         }
         return nil
+    }
+
+    /// From the executable path: the outermost `X.app` holding it, its name and bundle id;
+    /// the app's pid is the ancestor running that bundle's executable (else `pid`).
+    static func bundleOwner(of pid: pid_t) -> App? {
+        guard let path = executablePath(pid), let app = outermostApp(path) else { return nil }
+        let bundle = Bundle(url: URL(fileURLWithPath: app))
+        let name = (bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? URL(fileURLWithPath: app).deletingPathExtension().lastPathComponent
+        var owner = pid, current = pid
+        for _ in 0 ..< 6 { // the main process: the ancestor whose executable is the bundle's own
+            if let p = executablePath(current), p.hasPrefix(app + "/Contents/MacOS/") { owner = current; break }
+            guard let parent = parentPID(current), parent > 1 else { break }
+            current = parent
+        }
+        return App(pid: owner, name: name, bundleID: bundle?.bundleIdentifier)
+    }
+
+    /// "/Applications/Brave Browser.app/Contents/Frameworks/…/Helper.app/Contents/MacOS/x"
+    /// -> "/Applications/Brave Browser.app"
+    static func outermostApp(_ path: String) -> String? {
+        guard let range = path.range(of: ".app/") else { return nil }
+        return String(path[..<range.lowerBound]) + ".app"
+    }
+
+    private static func executablePath(_ pid: pid_t) -> String? {
+        var buffer = [CChar](repeating: 0, count: 4096)
+        return proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 ? String(cString: buffer) : nil
+    }
+
+    /// The app's icon: from LaunchServices, else from its bundle on disk (an app started
+    /// from a terminal is not in LaunchServices).
+    static func icon(of pid: pid_t) -> NSImage? {
+        if let icon = NSRunningApplication(processIdentifier: pid)?.icon { return icon }
+        return executablePath(pid).flatMap(outermostApp).map { NSWorkspace.shared.icon(forFile: $0) }
     }
 
     private static func parentPID(_ pid: pid_t) -> pid_t? {

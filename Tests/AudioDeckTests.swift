@@ -61,3 +61,12 @@ final class AudioDeckTests: XCTestCase {
         XCTAssertEqual(timecode(-3), "00:00")
     }
 }
+
+final class AudioSourceOwnerTests: XCTestCase {
+    func testOutermostApp() {
+        // a browser's helper belongs to the browser: the outermost .app of its path
+        XCTAssertEqual(AudioSources.outermostApp("/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Helpers/Brave Browser Helper.app/Contents/MacOS/Brave Browser Helper"), "/Applications/Brave Browser.app")
+        XCTAssertEqual(AudioSources.outermostApp("/Applications/Spotify.app/Contents/MacOS/Spotify"), "/Applications/Spotify.app")
+        XCTAssertNil(AudioSources.outermostApp("/usr/bin/afplay"))
+    }
+}

@@ -15,8 +15,8 @@ struct AudioSettings {
     static func load() -> AudioSettings {
         let theme = Config.string("audio.theme", "")
         return AudioSettings(
-            // --theme of this call wins, then [audio] theme, then the HUD's
-            theme: CommandLine.arguments.contains("--theme") ? Theme.name : theme.isEmpty ? Config.string("hud.theme", "netrunner") : theme,
+            // --theme of this call wins, then [audio] theme, then cyberpunk (neon red / cyan)
+            theme: CommandLine.arguments.contains("--theme") ? Theme.name : theme.isEmpty ? "cyberpunk" : theme,
             scale: Double(min(2, max(0.5, Config.number("audio.scale", 1)))),
             opacity: Double(min(1, max(0, Config.number("audio.opacity", 0.55)))),
             blur: Double(min(1, max(0, Config.number("audio.blur", 0.35)))),
@@ -63,6 +63,9 @@ final class AudioDeckModel: NSObject, ObservableObject {
     private var themeDate: Date?
 
     var playing: Bool { nowPlaying?.playing ?? false }
+    /// Sound is going out: the now playing app plays, or any app outputs sound (MediaRemote
+    /// can keep a paused tab as now playing while another tab plays). Drives the wave.
+    var audible: Bool { playing || sources.contains { $0.live } }
 
     func start() {
         wave.axisFraction = 0.48 // on the horizon of the cyberspace grid
@@ -89,16 +92,20 @@ final class AudioDeckModel: NSObject, ObservableObject {
             artworkData = info?.artwork
             artwork = artworkData.flatMap { NSImage(data: $0) }
         }
-        // capture only while something plays
-        if playing, !capturing { bands.start(); capturing = true }
-        if !playing, capturing { bands.stop(); capturing = false }
         readSources()
+    }
+
+    /// Capture only while sound goes out.
+    private func syncCapture() {
+        if audible, !capturing { bands.start(); capturing = true }
+        if !audible, capturing { bands.stop(); capturing = false }
     }
 
     /// 30 times a second: the wave (levels rise at once, fall slowly) and its progress line.
     @objc private func tick() {
-        for i in shown.indices { shown[i] = max(playing ? target[i] : 0, shown[i] * 0.85) }
-        wave.advance(levels: shown, playing: playing, wave: playing ? signals : nil)
+        let audible = audible
+        for i in shown.indices { shown[i] = max(audible ? target[i] : 0, shown[i] * 0.85) }
+        wave.advance(levels: shown, playing: audible, wave: audible ? signals : nil)
         if let info = nowPlaying, let duration = info.duration, duration > 0, let elapsed = info.elapsed(at: Date()) {
             wave.progress = CGFloat(elapsed / duration)
         } else {
@@ -130,12 +137,14 @@ final class AudioDeckModel: NSObject, ObservableObject {
     func readSources() {
         let current = nowPlaying.flatMap { info -> AudioSource? in
             let app = info.pid.flatMap { AudioSources.owner(of: $0, bundleID: info.bundleID) }
-                ?? info.bundleID.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first }
-            return app.map { AudioSource(id: $0.processIdentifier, name: $0.localizedName ?? info.bundleID ?? "?", bundleID: $0.bundleIdentifier, live: false) }
+                ?? info.bundleID.flatMap { id in NSRunningApplication.runningApplications(withBundleIdentifier: id).first
+                    .map { AudioSources.App(pid: $0.processIdentifier, name: $0.localizedName ?? id, bundleID: id) } }
+            return app.map { AudioSource(id: $0.pid, name: $0.name, bundleID: $0.bundleID, live: false) }
         }
         let merged = AudioSources.merged(AudioSources.live(), nowPlaying: current)
         set(\.sources, merged)
         set(\.controlled, current == nil ? nil : merged.first?.id)
+        syncCapture()
     }
 
     /// The theme file changed since the last look: reload the palette.

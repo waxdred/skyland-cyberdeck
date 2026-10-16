@@ -61,7 +61,7 @@ enum Config {
         apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify" # quick launch, by app name
 
         [audio]
-        theme = ""               # the audio deck's palette, "" = the [hud] one
+        theme = "cyberpunk"      # the audio deck's palette: cyberpunk, netrunner, skyland, any theme
         scale = 1.0              # size of the whole deck, 0.5 to 2
         opacity = 0.55           # deck background around the cards, 0 = clear
         blur = 0.35              # blur behind the deck, 0 = none, 1 = full

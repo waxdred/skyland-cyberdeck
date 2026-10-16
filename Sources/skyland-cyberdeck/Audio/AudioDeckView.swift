@@ -189,7 +189,7 @@ struct NowPlayingCard: View {
         }
     }
 
-    private var sourceIcon: NSImage? { model.controlled.flatMap { NSRunningApplication(processIdentifier: $0)?.icon } }
+    private var sourceIcon: NSImage? { model.controlled.flatMap(AudioSources.icon(of:)) }
 }
 
 /// The artwork as a hologram: tinted, scanlines; the app's icon or a waveform without one.
@@ -370,7 +370,7 @@ struct SourceTile: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(nsImage: NSRunningApplication(processIdentifier: source.id)?.icon ?? NSImage(systemSymbolName: "app", accessibilityDescription: nil) ?? NSImage())
+            Image(nsImage: AudioSources.icon(of: source.id) ?? NSImage(systemSymbolName: "app", accessibilityDescription: nil) ?? NSImage())
                 .resizable().frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(source.name).font(Tok.sans(12, .semibold)).foregroundStyle(Tok.text).lineLimit(1)
