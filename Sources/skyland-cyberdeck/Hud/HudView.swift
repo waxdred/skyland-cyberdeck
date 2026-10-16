@@ -30,12 +30,18 @@ enum Tok {
     // cards and their tiles: [hud] card-opacity lets the cyberspace backdrop through
     static var surface: Color { Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS).opacity(cardOpacity) }
     static var elevated: Color { Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS).opacity(min(1, cardOpacity + 0.1)) }
-    static let text = Color(red: 0.87, green: 0.98, blue: 1)
-    static let dim = Color(red: 0.46, green: 0.65, blue: 0.72)
-    static let off = Color(red: 0.21, green: 0.33, blue: 0.40)
-    static let ok = Color(red: 0.27, green: 1, blue: 0.78)
-    static let warn = Color(red: 1, green: 0.78, blue: 0.34)
-    static let bad = Color(red: 1, green: 0.30, blue: 0.43)
+    /// A light theme (its background, `ink`, is light): text and states turn dark to stay
+    /// readable on the light cards (they were made for night backgrounds).
+    static var isLight: Bool {
+        guard let c = inkNS.usingColorSpace(.sRGB) else { return false }
+        return 0.2126 * c.redComponent + 0.7152 * c.greenComponent + 0.0722 * c.blueComponent > 0.5
+    }
+    static var text: Color { isLight ? Color(red: 0.10, green: 0.11, blue: 0.13) : Color(red: 0.87, green: 0.98, blue: 1) }
+    static var dim: Color { isLight ? Color(red: 0.32, green: 0.35, blue: 0.38) : Color(red: 0.46, green: 0.65, blue: 0.72) }
+    static var off: Color { isLight ? Color(red: 0.55, green: 0.57, blue: 0.60) : Color(red: 0.21, green: 0.33, blue: 0.40) }
+    static var ok: Color { isLight ? Color(red: 0.05, green: 0.52, blue: 0.36) : Color(red: 0.27, green: 1, blue: 0.78) }
+    static var warn: Color { isLight ? Color(red: 0.66, green: 0.42, blue: 0.0) : Color(red: 1, green: 0.78, blue: 0.34) }
+    static var bad: Color { isLight ? Color(red: 0.78, green: 0.13, blue: 0.24) : Color(red: 1, green: 0.30, blue: 0.43) }
 
     /// readable text: [general] font, else the system font
     static func sans(_ size: CGFloat, _ weight: NSFont.Weight = .regular) -> Font {
