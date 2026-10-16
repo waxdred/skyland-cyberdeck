@@ -97,7 +97,11 @@ final class HudModel: ObservableObject {
     /// quick launch: the configured apps that are installed
     lazy var launchApps: [AppEntry] = {
         let installed = Apps.all()
-        return settings.apps.compactMap { name in installed.first { $0.name.caseInsensitiveCompare(name) == .orderedSame } }
+        return settings.apps.compactMap { name in
+            installed.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+                // elsewhere (Finder in CoreServices...): ask LaunchServices by name
+                ?? NSWorkspace.shared.fullPath(forApplication: name).map { AppEntry(name: name, url: URL(fileURLWithPath: $0)) }
+        }
     }()
 
     private var ticks: CPUTicks?
