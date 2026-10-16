@@ -6,15 +6,18 @@ import SwiftUI
 /// [hud] theme (netrunner by default, `skyland` follows the skyland theme) with the
 /// [colors] overrides; surfaces are the ink tinted with the accent; states are fixed.
 enum Tok {
-    private static let theme = Theme.load(named: HudSettings.load().theme)
+    private static let settings = HudSettings.load()
+    private static let theme = Theme.load(named: settings.theme)
     private static let accentNS = Config.color("colors.primary") ?? theme.primary
     private static let inkNS = Config.color("colors.ink") ?? theme.ink
     static let accent = Color(nsColor: accentNS)                                     // active states, frame, values
     static let label = Color(nsColor: Config.color("colors.secondary") ?? theme.secondary) // micro labels
     static let hot = Color(nsColor: Config.color("colors.highlight") ?? theme.highlight)   // upload, alerts
     static let background = Color(nsColor: inkNS)
-    static let surface = Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS)
-    static let elevated = Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS)
+    static let accentColor = accentNS
+    // cards and their tiles: [hud] card-opacity lets the cyberspace backdrop through
+    static let surface = Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS).opacity(settings.cardOpacity)
+    static let elevated = Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS).opacity(min(1, settings.cardOpacity + 0.1))
     static let text = Color(red: 0.87, green: 0.98, blue: 1)
     static let dim = Color(red: 0.46, green: 0.65, blue: 0.72)
     static let off = Color(red: 0.21, green: 0.33, blue: 0.40)
@@ -61,7 +64,7 @@ struct Card<Content: View>: View {
     }
 }
 
-/// Hover feedback: the edge lights up, a soft glow, a slight lift, and the pointing
+/// Hover feedback: the edge lights up, a slight lift, and the pointing
 /// hand on what does something when clicked. Reduce Motion: no lift.
 struct Hover: ViewModifier {
     var radius: CGFloat
@@ -71,7 +74,6 @@ struct Hover: ViewModifier {
     func body(content: Content) -> some View {
         content
             .overlay(RoundedRectangle(cornerRadius: radius).stroke(Tok.accent.opacity(over ? 0.85 : 0), lineWidth: 1.2))
-            .shadow(color: Tok.accent.opacity(over ? 0.4 : 0), radius: 12)
             .scaleEffect(over && !still ? 1.012 : 1)
             .animation(.easeOut(duration: 0.16), value: over)
             .contentShape(RoundedRectangle(cornerRadius: radius))
@@ -198,6 +200,7 @@ struct HudView: View {
         }
         .padding(24)
         .frame(width: 780)
+        .background(model.settings.cyberspace > 0 ? Cyberspace(strength: model.settings.cyberspace, color: Tok.accentColor).clipShape(CutFrame()) : nil)
         .background(CutFrame().fill(Tok.background.opacity(model.settings.opacity)))
         .background(CutFrame().fill(.ultraThinMaterial).opacity(model.settings.blur)) // [hud] blur: partly blurred behind
         .overlay(CutFrame().stroke(Tok.accent.opacity(0.55), lineWidth: 1.2).shadow(color: Tok.accent.opacity(0.6), radius: 5))
@@ -228,7 +231,8 @@ struct ClockCard: View {
     var settings: HudSettings { model.settings }
     var body: some View {
         Card(action: { model.open(app: "com.apple.clock") }) {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            // on each minute (or second) boundary, nothing in between
+            TimelineView(.periodic(from: Calendar.current.dateInterval(of: .minute, for: .now)?.start ?? .now, by: settings.clockSeconds ? 1 : 60)) { context in
                 VStack(alignment: .leading, spacing: 10) {
                     Text(time(context.date, .current))
                         .font(Font(NSFont.monospacedDigitSystemFont(ofSize: 92 * Neon.scale, weight: .thin)))
@@ -323,10 +327,8 @@ struct HerdrCard: View {
                                 .foregroundStyle(agent.status == "working" ? Tok.accent : agent.status == "done" ? Tok.ok : Tok.warn)
                         }
                     }
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        Text("● CONNECTED   UPDATED \(max(0, Int(context.date.timeIntervalSince(date))))s AGO")
-                            .font(Tok.mono(9, .semibold)).foregroundStyle(Tok.ok)
-                    }
+                    Text("● CONNECTED   UPDATED \(date.formatted(date: .omitted, time: .standard))")
+                        .font(Tok.mono(9, .semibold)).foregroundStyle(Tok.ok)
             }
         }
     }
@@ -492,7 +494,6 @@ struct LaunchIcon: View {
                 .padding(5)
                 .background(RoundedRectangle(cornerRadius: 8).fill(over ? Tok.accent.opacity(0.18) : Tok.elevated))
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Tok.accent.opacity(over ? 0.9 : 0.15), lineWidth: 1))
-                .shadow(color: Tok.accent.opacity(over ? 0.6 : 0), radius: 10)
                 .scaleEffect(over && !still ? 1.12 : 1)
                 .offset(y: over && !still ? -3 : 0)
             Text(app.name.uppercased()).font(Tok.mono(8, .semibold)).foregroundStyle(over ? Tok.accent : .clear).lineLimit(1).frame(width: 64)

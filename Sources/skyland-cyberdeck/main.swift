@@ -39,7 +39,16 @@ func toggle(_ name: String) {
         exit(0)
     }
     try? String(getpid()).write(to: pidFile, atomically: true, encoding: .utf8)
+    // a closed instance forgets its pid file right away, so the next toggle opens a
+    // new one instead of "closing" one that is still exiting
+    togglePidFile = pidFile
+    atexit {
+        if let file = togglePidFile, (try? String(contentsOf: file, encoding: .utf8)) == String(getpid()) { try? FileManager.default.removeItem(at: file) }
+    }
+    signal(SIGTERM) { _ in exit(0) }
 }
+
+nonisolated(unsafe) var togglePidFile: URL?
 
 func run(_ delegate: NSApplicationDelegate) -> Never {
     let app = NSApplication.shared

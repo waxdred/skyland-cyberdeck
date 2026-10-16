@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import SwiftUI
 
 // The HUD: `skyland-cyberdeck hud` toggles a translucent column on the right third
@@ -19,12 +18,15 @@ final class HudApp: NSObject, NSApplicationDelegate {
         panel.hasShadow = false
         panel.hidesOnDeactivate = false // stays when focus follows the mouse elsewhere
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        let host = NSHostingView(rootView: HudView(model: model).environment(\.colorScheme, .dark))
+        // the deck reports its size from its own layout (no extra layout pass per update):
+        // the window follows when it grows / shrinks (herdr agents, messages, lists)
+        let root = HudView(model: model).environment(\.colorScheme, .dark).fixedSize()
+            .background(GeometryReader { Color.clear.preference(key: DeckSize.self, value: $0.size) })
+            .onPreferenceChange(DeckSize.self) { [weak self] size in self?.place(size) }
+        let host = NSHostingView(rootView: root)
         panel.contentView = host
         model.start()
-        place()
-        // the deck grows / shrinks with its content (herdr agents, messages)
-        sizeWatch = model.objectWillChange.sink { [weak self] _ in DispatchQueue.main.async { self?.place() } }
+        place(host.fittingSize) // once at open: an empty window gets no layout to report from
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             switch event.keyCode {
@@ -44,13 +46,12 @@ final class HudApp: NSObject, NSApplicationDelegate {
         NSAnimationContext.runAnimationGroup { $0.duration = reduceMotion ? 0 : 0.18; panel.animator().alphaValue = 1 }
     }
 
-    private var sizeWatch: Any?
+    private lazy var screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main ?? NSScreen.screens[0]
 
-    /// Content size, on the right of the screen under the mouse, vertically centered.
-    private func place() {
-        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main ?? NSScreen.screens[0]
+    /// Deck size, on the right of the screen it opened on, vertically centered.
+    private func place(_ size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
         let area = screen.visibleFrame
-        let size = panel.contentView?.fittingSize ?? .zero
         let height = min(size.height, area.height - 16)
         let frame = NSRect(x: area.maxX - size.width - 16, y: area.midY - height / 2, width: size.width, height: height)
         if frame != panel.frame { panel.setFrame(frame, display: true) }
@@ -59,4 +60,9 @@ final class HudApp: NSObject, NSApplicationDelegate {
     // Not closed when it loses focus: skyland's focus follows the mouse, so leaving
     // the deck would close it. A click anywhere outside does (global monitors only
     // see other apps' events).
+}
+
+private struct DeckSize: PreferenceKey {
+    static let defaultValue = CGSize.zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
 }

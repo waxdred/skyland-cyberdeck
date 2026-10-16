@@ -59,9 +59,11 @@ clock-24h = true
 clock-seconds = false
 second-timezone = ""       # e.g. "America/New_York"
 week-start = 0             # 0 = locale, 1 = Sunday, 2 = Monday
-refresh-ms = 1000          # system metrics; herdr every 3 s, disk every 30 s
+refresh-ms = 2000          # system metrics; herdr every 3 s, disk every 30 s
 opacity = 0.45           # deck background around the cards, 0 = clear
 blur = 0.35              # blur behind the deck, 0 = none, 1 = full
+card-opacity = 0.72      # card backgrounds, lower lets the backdrop through
+cyberspace = 0.6         # grid, data streams and scan line behind the cards, 0 = off
 apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify"   # quick launch, by app name
 ```
 

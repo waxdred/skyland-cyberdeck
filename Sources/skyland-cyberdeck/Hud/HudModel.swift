@@ -11,6 +11,8 @@ struct HudSettings {
     var refreshMs: Int
     var opacity: Double // deck background around the cards
     var blur: Double    // strength of the blur behind the deck, 0 = none
+    var cardOpacity: Double
+    var cyberspace: Double // backdrop effect strength, 0 = off
     var secondTimezone: TimeZone?
     var theme: String
     var apps: [String]
@@ -25,9 +27,11 @@ struct HudSettings {
             clock24h: Config.bool("hud.clock-24h", true),
             clockSeconds: Config.bool("hud.clock-seconds", false),
             weekStart: min(7, max(0, Config.int("hud.week-start", 0))),
-            refreshMs: min(10000, max(250, Config.int("hud.refresh-ms", 1000))),
+            refreshMs: min(10000, max(250, Config.int("hud.refresh-ms", 2000))),
             opacity: Double(min(1, max(0, Config.number("hud.opacity", 0.45)))),
             blur: Double(min(1, max(0, Config.number("hud.blur", 0.35)))),
+            cardOpacity: Double(min(1, max(0, Config.number("hud.card-opacity", 0.72)))),
+            cyberspace: Double(min(1, max(0, Config.number("hud.cyberspace", 0.6)))),
             secondTimezone: TimeZone(identifier: Config.string("hud.second-timezone", "")),
             // --theme of this call wins, then [hud] theme; netrunner is the HUD's own palette
             theme: CommandLine.arguments.contains("--theme") ? Theme.name : Config.string("hud.theme", "netrunner"),
@@ -109,7 +113,8 @@ final class HudModel: ObservableObject {
             if let ticks, let usage = cpuUsage(from: ticks, to: now) { cpu = usage; cpuHistory.append(usage) }
             ticks = now
         }
-        memory = SystemReaders.memory()
+        let memory = SystemReaders.memory()
+        if memory?.used != self.memory?.used || memory?.total != self.memory?.total { self.memory = memory }
         if let now = SystemReaders.networkBytes() {
             let date = Date()
             if let bytes {
@@ -123,11 +128,11 @@ final class HudModel: ObservableObject {
         // slower readers: every ~5 s (interface, battery, audio devices), ~30 s (disk), ~3 s (herdr)
         let every = { (period: Double) in self.ticksCount == 1 || self.ticksCount % max(1, Int(period / seconds)) == 0 }
         if every(5) {
-            interface = SystemReaders.primaryInterface(); battery = SystemReaders.battery(); outputs = Audio.outputDevices()
+            set(\.interface, SystemReaders.primaryInterface()); set(\.battery, SystemReaders.battery()); set(\.outputs, Audio.outputDevices())
             if settings.widgets.contains("connections") { readConnections() }
         }
-        if every(30) { storage = SystemReaders.storage() }
-        if every(3) { messages = Messages.list(limit: 2); brightness = Brightness.get() }
+        if every(30) { let storage = SystemReaders.storage(); if storage?.available != self.storage?.available { self.storage = storage } }
+        if every(3) { set(\.messages, Messages.list(limit: 2)); set(\.brightness, Brightness.get()) }
         if every(3), settings.widgets.contains("herdr") {
             HerdrReader.read { state in
                 DispatchQueue.main.async {
@@ -140,10 +145,15 @@ final class HudModel: ObservableObject {
         readAudio()
     }
 
+    /// Assign only a new value: every assignment re-renders the deck.
+    private func set<T: Equatable>(_ key: ReferenceWritableKeyPath<HudModel, T>, _ value: T) {
+        if self[keyPath: key] != value { self[keyPath: key] = value }
+    }
+
     func readAudio() {
-        output = Audio.defaultOutput
-        volume = output.flatMap(Audio.volume)
-        muted = output.flatMap(Audio.muted)
+        set(\.output, Audio.defaultOutput)
+        set(\.volume, output.flatMap(Audio.volume))
+        set(\.muted, output.flatMap(Audio.muted))
     }
 
     func setVolume(_ value: Float) {
@@ -157,9 +167,9 @@ final class HudModel: ObservableObject {
     }
 
     func readConnections() {
-        wifi = Connectivity.wifi()
-        bluetooth = Connectivity.bluetooth()
-        airdrop = Connectivity.airdrop()
+        set(\.wifi, Connectivity.wifi())
+        set(\.bluetooth, Connectivity.bluetooth())
+        set(\.airdrop, Connectivity.airdrop())
     }
 
     func toggleWifi() {
