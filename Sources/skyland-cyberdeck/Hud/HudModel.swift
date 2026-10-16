@@ -70,6 +70,9 @@ final class HudModel: ObservableObject {
     var firstWeekday: Int { settings.weekStart == 0 ? Calendar.current.firstWeekday : settings.weekStart }
 
     @Published var monthOffset = 0
+    /// bumped when the theme file changes: the deck redraws with the new palette
+    @Published var themeVersion = 0
+    private var themeDate: Date?
     /// set by the app: forget the dragged position, back on the right
     var resetPosition: () -> Void = {}
     @Published var cpu: Double?
@@ -139,6 +142,7 @@ final class HudModel: ObservableObject {
             set(\.interface, SystemReaders.primaryInterface()); set(\.battery, SystemReaders.battery()); set(\.outputs, Audio.outputDevices())
             if settings.widgets.contains("connections") { readConnections() }
         }
+        watchTheme()
         if every(30) { let storage = SystemReaders.storage(); if storage?.available != self.storage?.available { self.storage = storage } }
         if every(3) { set(\.messages, Messages.list(limit: 2)); set(\.brightness, Brightness.get()) }
         if every(3), settings.widgets.contains("herdr") {
@@ -151,6 +155,18 @@ final class HudModel: ObservableObject {
             }
         }
         readAudio()
+    }
+
+    /// The theme file (skyland's theme.css, a theme by name or path) changed since the
+    /// last look: reload the palette. A file date per refresh, nothing more.
+    private func watchTheme() {
+        guard let file = Theme.file(settings.theme),
+              let date = try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate] as? Date else { return }
+        if let themeDate, date != themeDate {
+            Tok.reloadTheme()
+            themeVersion += 1
+        }
+        themeDate = date
     }
 
     /// Assign only a new value: every assignment re-renders the deck.

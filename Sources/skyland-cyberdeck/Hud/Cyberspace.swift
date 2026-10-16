@@ -12,12 +12,12 @@ struct Cyberspace: NSViewRepresentable {
     let color: NSColor
 
     func makeNSView(context: Context) -> CyberspaceView { CyberspaceView(strength: strength, color: color) }
-    func updateNSView(_ view: CyberspaceView, context: Context) {}
+    func updateNSView(_ view: CyberspaceView, context: Context) { view.recolor(color) }
 }
 
 final class CyberspaceView: NSView {
     private let strength: Double
-    private let color: NSColor
+    private var color: NSColor
     private let grid = CAShapeLayer()
     private let streams = CAEmitterLayer()
     private let scan = CAGradientLayer()
@@ -44,6 +44,15 @@ final class CyberspaceView: NSView {
     }
 
     required init?(coder: NSCoder) { nil }
+
+    /// New theme accent: same layers, new colors.
+    func recolor(_ newColor: NSColor) {
+        guard newColor != color else { return }
+        color = newColor
+        grid.strokeColor = color.withAlphaComponent(0.16 * strength).cgColor
+        scan.colors = [NSColor.clear.cgColor, color.withAlphaComponent(0.16 * strength).cgColor, NSColor.clear.cgColor]
+        streams.emitterCells?.first.map { _ in streams.setValue(color.withAlphaComponent(0.55 * strength).cgColor, forKeyPath: "emitterCells.stream.color") }
+    }
 
     override func hitTest(_ point: NSPoint) -> NSView? { nil } // decoration: clicks go to the cards
 
@@ -100,6 +109,7 @@ final class CyberspaceView: NSView {
             return true
         }
         let cell = CAEmitterCell()
+        cell.name = "stream"
         cell.contents = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
         cell.color = color.withAlphaComponent(0.55 * strength).cgColor
         cell.birthRate = Float(5 * strength)

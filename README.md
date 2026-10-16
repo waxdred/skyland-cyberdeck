@@ -44,7 +44,8 @@ A deck on the right of the screen under the mouse, with real data only:
   disk, battery (time left only when macOS estimates it)
 - **messages** (the last two) and **quick launch** apps
 
-Drag it by its header or the gaps between the cards: it opens there next time;
+A theme change (theme picker, light / dark, new wallpaper colors) shows within one
+refresh, without reopening it. Drag it by its header or the gaps between the cards: it opens there next time;
 double-click those places to put it back on the right. Hovering lights up what can be clicked: a card opens its app (Clock, Calendar, Activity
 Monitor, the terminal for herdr, the messages panel, Sound settings), a message opens
 its app. `esc`, `alt-shift-d` or a click outside closes it; moving the mouse away does not (focus

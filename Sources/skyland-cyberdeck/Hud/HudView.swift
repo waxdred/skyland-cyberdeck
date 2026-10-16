@@ -5,19 +5,22 @@ import SwiftUI
 /// Design tokens of the HUD, every color of the HUD comes from here. The palette is
 /// [hud] theme (netrunner by default, `skyland` follows the skyland theme) with the
 /// [colors] overrides; surfaces are the ink tinted with the accent; states are fixed.
+/// The palette is reloaded when the theme file changes (HudModel watches it).
 enum Tok {
     private static let settings = HudSettings.load()
-    private static let theme = Theme.load(named: settings.theme)
-    private static let accentNS = Config.color("colors.primary") ?? theme.primary
-    private static let inkNS = Config.color("colors.ink") ?? theme.ink
-    static let accent = Color(nsColor: accentNS)                                     // active states, frame, values
-    static let label = Color(nsColor: Config.color("colors.secondary") ?? theme.secondary) // micro labels
-    static let hot = Color(nsColor: Config.color("colors.highlight") ?? theme.highlight)   // upload, alerts
-    static let background = Color(nsColor: inkNS)
-    static let accentColor = accentNS
+    private static var theme = Theme.load(named: settings.theme)
+    static func reloadTheme() { theme = Theme.load(named: settings.theme) }
+
+    private static var accentNS: NSColor { Config.color("colors.primary") ?? theme.primary }
+    private static var inkNS: NSColor { Config.color("colors.ink") ?? theme.ink }
+    static var accent: Color { Color(nsColor: accentNS) }                                     // active states, frame, values
+    static var label: Color { Color(nsColor: Config.color("colors.secondary") ?? theme.secondary) } // micro labels
+    static var hot: Color { Color(nsColor: Config.color("colors.highlight") ?? theme.highlight) }   // upload, alerts
+    static var background: Color { Color(nsColor: inkNS) }
+    static var accentColor: NSColor { accentNS }
     // cards and their tiles: [hud] card-opacity lets the cyberspace backdrop through
-    static let surface = Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS).opacity(settings.cardOpacity)
-    static let elevated = Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS).opacity(min(1, settings.cardOpacity + 0.1))
+    static var surface: Color { Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS).opacity(settings.cardOpacity) }
+    static var elevated: Color { Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS).opacity(min(1, settings.cardOpacity + 0.1)) }
     static let text = Color(red: 0.87, green: 0.98, blue: 1)
     static let dim = Color(red: 0.46, green: 0.65, blue: 0.72)
     static let off = Color(red: 0.21, green: 0.33, blue: 0.40)
@@ -197,6 +200,7 @@ struct HudView: View {
                 if shows("launch") && !model.launchApps.isEmpty { LaunchCard(apps: model.launchApps) }
             }
             .opacity(shown ? 1 : 0).offset(x: shown || still ? 0 : 24)
+            .id(model.themeVersion) // a new theme rebuilds every card with the new palette
             Text("ESC close     ← → month     click a card to open it     a click outside closes").font(Tok.mono(9)).foregroundStyle(Tok.off)
         }
         .padding(24)
