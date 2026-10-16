@@ -4,9 +4,15 @@ Each `## vX.Y.Z` section is also the text of its GitHub release.
 
 ## Unreleased
 
-- **HUD** (`skyland-cyberdeck hud`): clock, calendar, herdr agents, brightness and
-  volume, CPU / RAM / network / disk / battery, last messages, quick launch. Real data
-  only, sampled only while it is open. `[hud]` settings, `netrunner` palette.
+- **HUD** (`skyland-cyberdeck hud`, `alt-shift-d` in skyland): clock, calendar,
+  connections (join a known Wi-Fi network, connect a paired Bluetooth device), display
+  brightness and volume, CPU / RAM / network / disk / battery, herdr agents (from the
+  herdr socket), last messages, quick launch. Real data only, nothing sampled while it
+  is closed, about 2% CPU while open.
+- Click a card to open its app, drag the deck anywhere (remembered), follows skyland
+  theme changes live, optional cyberspace backdrop.
+- `[hud]` settings: widgets, theme (new `netrunner` palette), scale, background / card
+  opacity, blur, backdrop, clock, week start, refresh, quick launch apps.
 
 ## v0.1.0
 
