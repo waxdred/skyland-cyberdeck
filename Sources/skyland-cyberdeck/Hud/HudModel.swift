@@ -9,7 +9,8 @@ struct HudSettings {
     var clockSeconds: Bool
     var weekStart: Int // 1 = Sunday ... 7 = Saturday, 0 = the locale's
     var refreshMs: Int
-    var opacity: Double
+    var opacity: Double // deck background around the cards
+    var blur: Double    // strength of the blur behind the deck, 0 = none
     var secondTimezone: TimeZone?
     var theme: String
     var apps: [String]
@@ -25,7 +26,8 @@ struct HudSettings {
             clockSeconds: Config.bool("hud.clock-seconds", false),
             weekStart: min(7, max(0, Config.int("hud.week-start", 0))),
             refreshMs: min(10000, max(250, Config.int("hud.refresh-ms", 1000))),
-            opacity: Double(min(1, max(0.3, Config.number("hud.opacity", 0.86)))),
+            opacity: Double(min(1, max(0, Config.number("hud.opacity", 0.45)))),
+            blur: Double(min(1, max(0, Config.number("hud.blur", 0.35)))),
             secondTimezone: TimeZone(identifier: Config.string("hud.second-timezone", "")),
             // --theme of this call wins, then [hud] theme; netrunner is the HUD's own palette
             theme: CommandLine.arguments.contains("--theme") ? Theme.name : Config.string("hud.theme", "netrunner"),

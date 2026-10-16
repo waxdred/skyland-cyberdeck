@@ -199,12 +199,12 @@ struct HudView: View {
         .padding(24)
         .frame(width: 780)
         .background(CutFrame().fill(Tok.background.opacity(model.settings.opacity)))
-        .background(.ultraThinMaterial, in: CutFrame()) // blur what is behind
+        .background(CutFrame().fill(.ultraThinMaterial).opacity(model.settings.blur)) // [hud] blur: partly blurred behind
         .overlay(CutFrame().stroke(Tok.accent.opacity(0.55), lineWidth: 1.2).shadow(color: Tok.accent.opacity(0.6), radius: 5))
         .overlay(CutFrame(cut: 17).stroke(Tok.accent.opacity(0.14), lineWidth: 1).padding(6))
         .overlay(DeckFrame().stroke(Tok.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            .shadow(color: Tok.accent, radius: 8).shadow(color: Tok.accent.opacity(0.6), radius: 16))
-        .padding(14)
+            .shadow(color: Tok.accent, radius: 7).shadow(color: Tok.accent.opacity(0.45), radius: 12))
+        .padding(32) // room for the glow to fade out before the window edge (no visible rectangle)
         .onAppear { withAnimation(.easeOut(duration: still ? 0 : 0.35).delay(0.05)) { shown = true } }
     }
 

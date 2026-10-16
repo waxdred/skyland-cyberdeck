@@ -53,7 +53,8 @@ enum Config {
         second-timezone = ""     # e.g. "America/New_York"
         week-start = 0           # 0 = locale, 1 = Sunday, 2 = Monday
         refresh-ms = 1000
-        opacity = 0.86
+        opacity = 0.45           # deck background around the cards, 0 = clear
+        blur = 0.35              # blur behind the deck, 0 = none, 1 = full
         apps = "Finder, Ghostty, Visual Studio Code, Safari, Spotify" # quick launch, by app name
         """
 
