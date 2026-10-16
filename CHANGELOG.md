@@ -2,7 +2,7 @@
 
 Each `## vX.Y.Z` section is also the text of its GitHub release.
 
-## Unreleased
+## v0.2.0
 
 - **HUD** (`skyland-cyberdeck hud`, `alt-shift-d` in skyland): clock, calendar,
   connections (join a known Wi-Fi network, connect a paired Bluetooth device), display
@@ -13,6 +13,7 @@ Each `## vX.Y.Z` section is also the text of its GitHub release.
   theme changes live, optional cyberspace backdrop.
 - `[hud]` settings: widgets, theme (new `netrunner` palette), scale, background / card
   opacity, blur, backdrop, clock, week start, refresh, quick launch apps.
+- Fix: reopening a launcher, panel or HUD right after closing it opened nothing.
 
 ## v0.1.0
 
