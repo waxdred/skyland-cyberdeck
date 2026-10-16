@@ -6,6 +6,8 @@ let usage = """
       launcher                      toggle the apps launcher
       messages                      toggle the messages panel
       hud                           toggle the HUD: clock, calendar, system, herdr agents, audio
+      audio                         toggle the audio deck: the live signal, now playing, volume,
+                                    output ports, the apps on the audio bus
       notify -t TITLE [-b BODY] [-s SUBTITLE] [-a APP] [--seconds N] [--quiet]
                                     add a message (APP: bundle id or any name), show a popup
                                     unless --quiet; prints its id
@@ -69,6 +71,9 @@ switch args.first {
     case "hud":
         toggle("hud")
         run(HudApp())
+    case "audio":
+        toggle("audio")
+        run(AudioDeckApp())
     case "notify":
         guard let title = option("-t", "--title", in: args) else { fail(usage) }
         let message = Messages.add(app: option("-a", "--app", in: args) ?? "skyland", title: title,

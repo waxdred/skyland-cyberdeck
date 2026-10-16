@@ -8,8 +8,16 @@ import SwiftUI
 /// The palette is reloaded when the theme file changes (HudModel watches it).
 enum Tok {
     private static let settings = HudSettings.load()
-    private static var theme = Theme.load(named: settings.theme)
-    static func reloadTheme() { theme = Theme.load(named: settings.theme) }
+    // the palette and the card opacity: the [hud] ones, the audio deck switches to its own
+    private static var themeName = settings.theme
+    private static var cardOpacity = settings.cardOpacity
+    private static var theme = Theme.load(named: themeName)
+    static func reloadTheme() { theme = Theme.load(named: themeName) }
+    static func use(theme name: String, cardOpacity opacity: Double) {
+        themeName = name
+        cardOpacity = opacity
+        reloadTheme()
+    }
 
     private static var accentNS: NSColor { Config.color("colors.primary") ?? theme.primary }
     private static var inkNS: NSColor { Config.color("colors.ink") ?? theme.ink }
@@ -18,9 +26,10 @@ enum Tok {
     static var hot: Color { Color(nsColor: Config.color("colors.highlight") ?? theme.highlight) }   // upload, alerts
     static var background: Color { Color(nsColor: inkNS) }
     static var accentColor: NSColor { accentNS }
+    static var inkColor: NSColor { inkNS }
     // cards and their tiles: [hud] card-opacity lets the cyberspace backdrop through
-    static var surface: Color { Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS).opacity(settings.cardOpacity) }
-    static var elevated: Color { Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS).opacity(min(1, settings.cardOpacity + 0.1)) }
+    static var surface: Color { Color(nsColor: inkNS.blended(withFraction: 0.07, of: accentNS) ?? inkNS).opacity(cardOpacity) }
+    static var elevated: Color { Color(nsColor: inkNS.blended(withFraction: 0.13, of: accentNS) ?? inkNS).opacity(min(1, cardOpacity + 0.1)) }
     static let text = Color(red: 0.87, green: 0.98, blue: 1)
     static let dim = Color(red: 0.46, green: 0.65, blue: 0.72)
     static let off = Color(red: 0.21, green: 0.33, blue: 0.40)
