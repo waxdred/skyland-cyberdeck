@@ -40,7 +40,8 @@ A deck on the right of the screen under the mouse, with real data only:
   disk, battery (time left only when macOS estimates it)
 - **messages** (the last two) and **quick launch** apps
 
-`esc` or a click outside closes it. Nothing is sampled while it is closed: the
+`esc`, `alt-shift-d` or a click outside closes it; moving the mouse away does not (focus
+follows the mouse in skyland). Nothing is sampled while it is closed: the
 process ends with the deck. Its palette is `netrunner` (cyan); `[hud] theme = "skyland"`
 follows the skyland theme.
 

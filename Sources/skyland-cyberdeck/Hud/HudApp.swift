@@ -3,7 +3,8 @@ import Combine
 import SwiftUI
 
 // The HUD: `skyland-cyberdeck hud` toggles a translucent column on the right third
-// of the screen under the mouse. esc or a click outside closes it (the process
+// of the screen under the mouse. esc or a click outside closes it, not the focus
+// moving away (focus follows the mouse in skyland) (the process
 // ends, so nothing is sampled while it is hidden); ← → change the calendar month.
 
 final class HudApp: NSObject, NSApplicationDelegate {
@@ -16,6 +17,7 @@ final class HudApp: NSObject, NSApplicationDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
+        panel.hidesOnDeactivate = false // stays when focus follows the mouse elsewhere
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         let host = NSHostingView(rootView: HudView(model: model).environment(\.colorScheme, .dark))
         panel.contentView = host
@@ -33,6 +35,7 @@ final class HudApp: NSObject, NSApplicationDelegate {
             }
             return nil
         }
+        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { _ in exit(0) }
         panel.alphaValue = 0
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
@@ -53,5 +56,7 @@ final class HudApp: NSObject, NSApplicationDelegate {
         if frame != panel.frame { panel.setFrame(frame, display: true) }
     }
 
-    func applicationDidResignActive(_ notification: Notification) { exit(0) }
+    // Not closed when it loses focus: skyland's focus follows the mouse, so leaving
+    // the deck would close it. A click anywhere outside does (global monitors only
+    // see other apps' events).
 }
