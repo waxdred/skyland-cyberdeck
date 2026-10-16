@@ -38,30 +38,43 @@ func parseHerdrPanes(_ data: Data) -> HerdrSummary? {
 }
 
 enum HerdrReader {
-    /// herdr from the PATH, plus the usual install places (apps get a short PATH).
-    static let executable: String? = {
-        let path = (ProcessInfo.processInfo.environment["PATH"] ?? "") + ":\(NSHomeDirectory())/.local/bin:/opt/homebrew/bin:/usr/local/bin"
-        return path.split(separator: ":").map { "\($0)/herdr" }.first { FileManager.default.isExecutableFile(atPath: $0) }
-    }()
+    /// herdr's server socket: no `herdr` process is started (security tools such as
+    /// XFENCE ask before every program run from ~/.local/bin).
+    static let socketPath = ProcessInfo.processInfo.environment["HERDR_SOCKET_PATH"]
+        ?? "\(NSHomeDirectory())/.config/herdr/herdr.sock"
 
-    /// Runs off the main thread; at most 3 s.
+    /// One `pane.list` request, off the main thread, at most 2 s.
     static func read(completion: @escaping (HerdrState) -> Void) {
-        guard let executable else { return completion(.unavailable) }
-        DispatchQueue.global(qos: .utility).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = ["pane", "list"]
-            let output = Pipe()
-            process.standardOutput = output
-            process.standardError = FileHandle.nullDevice
-            do { try process.run() } catch { return completion(.error(error.localizedDescription)) }
-            let timer = DispatchWorkItem { process.terminate() }
-            DispatchQueue.global().asyncAfter(deadline: .now() + 3, execute: timer)
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            timer.cancel()
-            if process.terminationStatus != 0 { return completion(.unavailable) } // no server running
-            completion(parseHerdrPanes(data).map { .connected($0, Date()) } ?? .error("unexpected output"))
+        DispatchQueue.global(qos: .utility).async { completion(request()) }
+    }
+
+    private static func request() -> HerdrState {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { return .error("socket") }
+        defer { close(fd) }
+        var timeout = timeval(tv_sec: 2, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        guard socketPath.utf8.count < MemoryLayout.size(ofValue: address.sun_path) else { return .error("socket path too long") }
+        withUnsafeMutableBytes(of: &address.sun_path) { buffer in
+            buffer.copyBytes(from: socketPath.utf8)
+            buffer[socketPath.utf8.count] = 0
         }
+        let connected = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
+        }
+        guard connected == 0 else { return .unavailable } // no herdr server
+        let line = #"{"id":"cyberdeck:hud","method":"pane.list","params":{}}"# + "\n"
+        guard line.withCString({ write(fd, $0, strlen($0)) }) > 0 else { return .error("write") }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 65536)
+        while !data.contains(UInt8(ascii: "\n")) {
+            let count = Darwin.read(fd, &buffer, buffer.count)
+            if count <= 0 { break }
+            data.append(contentsOf: buffer[0 ..< count])
+        }
+        return parseHerdrPanes(data).map { .connected($0, Date()) } ?? .error("unexpected reply")
     }
 }

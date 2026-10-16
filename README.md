@@ -31,7 +31,8 @@ A deck on the right of the screen under the mouse, with real data only:
 - **clock** (24 h or 12 h, seconds, a second time zone) and **calendar** (today
   highlighted, `←` `→` change the month, the locale's week start or yours)
 - **herdr agents**: sessions, running, waiting for you, idle, the active ones
-  (`herdr pane list`); `UNAVAILABLE` when herdr is not running
+  (`pane.list` on the herdr socket, no `herdr` process started); `UNAVAILABLE` when
+  herdr is not running
 - **display & sound**: built-in display brightness, output volume and mute, output
   device; the sliders change the real values
 - **system**: CPU (all cores) and RAM (used like Activity Monitor: app + wired +
