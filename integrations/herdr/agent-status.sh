@@ -2,7 +2,9 @@
 # herdr event hook (pane.agent_status_changed): a skyland-cyberdeck message when
 # an agent is done or waits for you (blocked / waiting). The event JSON is in
 # HERDR_PLUGIN_EVENT_JSON; the last one is kept in the plugin state dir.
-DECK="${SKYLAND_CYBERDECK:-$HOME/code/hyperland/skyland-cyberdeck/.build/release/skyland-cyberdeck}"
+# herdr runs hooks with a short PATH: add the usual install places
+PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+DECK="${SKYLAND_CYBERDECK:-$(command -v skyland-cyberdeck)}"
 [[ -x "$DECK" ]] || exit 0
 STATE="${HERDR_PLUGIN_STATE_DIR:-${TMPDIR:-/tmp}/skyland-cyberdeck-herdr}"
 mkdir -p "$STATE"
@@ -57,19 +59,23 @@ except Exception:
 print("\t".join([label, pane.get("terminal_title_stripped", ""), str(pane.get("focused", False)).lower()]))
 ' "$HERDR")
 fi
-# the pane you are looking at: no popup (herdr also only sounds for the background)
-# (front app from skyland's CLI: lsappinfo has no front app for background processes)
-WM="${SKYLAND_CLI:-$HOME/code/hyperland/skyland/.build/debug/aerospace}"
-if [[ "$focused" == true && -x "$WM" ]] \
-    && [[ "$("$WM" list-windows --focused --format '%{app-bundle-id}' </dev/null 2>/dev/null)" == com.mitchellh.ghostty ]]; then
-    exit 0
-fi
-
 case "$status" in
     done) kind=done title="${agent:-agent} finished" ;;
     blocked | waiting) kind=request title="${agent:-agent} needs you" ;;
     *) exit 0 ;;
 esac
+
+# the terminal herdr runs in: skyland's [terminal] app, Ghostty by default
+WM="${SKYLAND_CLI:-$(command -v skyland)}"
+term="$([[ -x "$WM" ]] && "$WM" config terminal app 2>/dev/null)"
+term="${term:-Ghostty}"
+term_id="$(osascript -e "id of application \"$term\"" 2>/dev/null || echo com.mitchellh.ghostty)"
+# the pane you are looking at: no popup (herdr also only sounds for the background)
+# (front app from skyland's CLI: lsappinfo has no front app for background processes)
+if [[ "$focused" == true && -x "$WM" ]] \
+    && [[ "$("$WM" list-windows --focused --format '%{app-bundle-id}' </dev/null 2>/dev/null)" == "$term_id" ]]; then
+    exit 0
+fi
 
 # herdr flaps done -> working -> done at the end of a turn: one message per pane
 # and kind, then quiet for DEBOUNCE seconds
@@ -80,4 +86,4 @@ if [[ -f "$stamp" ]] && (( now - $(cat "$stamp") < DEBOUNCE )); then
     exit 0
 fi
 echo "$now" > "$stamp"
-"$DECK" notify -a com.mitchellh.ghostty -t "$title" -s "${where:-herdr}" -b "$detail" >/dev/null 2>&1 &
+"$DECK" notify -a "$term_id" -t "$title" -s "${where:-herdr}" -b "$detail" >/dev/null 2>&1 &

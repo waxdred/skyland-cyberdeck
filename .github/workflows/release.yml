@@ -1,0 +1,45 @@
+# On a v* tag: a GitHub release whose notes are the CHANGELOG.md section of the
+# tag, then the Homebrew formula (waxdred/homebrew-tap) points to the tag's
+# source archive. Homebrew builds it from source.
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build -c release
+      - name: Release notes (CHANGELOG.md section of the tag)
+        run: |
+          mkdir -p dist
+          awk -v tag="## ${GITHUB_REF_NAME}" '$0 == tag { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > dist/notes.md
+          [ -s dist/notes.md ] || echo "See [CHANGELOG.md](https://github.com/waxdred/skyland-cyberdeck/blob/main/CHANGELOG.md)." > dist/notes.md
+          printf '\n**Install:** `brew install waxdred/tap/skyland-cyberdeck`\n' >> dist/notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: dist/notes.md
+      - name: Update the Homebrew tap (waxdred/homebrew-tap)
+        # needs the HOMEBREW_TAP_TOKEN secret (Contents read / write on
+        # waxdred/homebrew-tap only); skipped without it
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          [ -n "$TAP_TOKEN" ] || { echo "no HOMEBREW_TAP_TOKEN secret: tap not updated"; exit 0; }
+          url="https://github.com/waxdred/skyland-cyberdeck/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"
+          sha="$(curl -fsSL "$url" | shasum -a 256 | cut -d' ' -f1)"
+          git clone -q "https://x-access-token:${TAP_TOKEN}@github.com/waxdred/homebrew-tap.git" tap
+          cd tap
+          sed -i '' -E \
+            -e "s|archive/refs/tags/v[^\"]+\.tar\.gz|archive/refs/tags/${GITHUB_REF_NAME}.tar.gz|" \
+            -e "s|sha256 \"[0-9a-f]{64}\"|sha256 \"${sha}\"|" Formula/skyland-cyberdeck.rb
+          git diff --quiet && { echo "formula already up to date"; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "skyland-cyberdeck ${GITHUB_REF_NAME#v}"
+          git push -q

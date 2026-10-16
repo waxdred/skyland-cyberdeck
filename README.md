@@ -93,11 +93,16 @@ skyland-cyberdeck launcher --theme 43pr-nord   # this call only
 `pane.agent_status_changed`, an agent that is `done` gives "claude finished", one that
 is `blocked` or `waiting` gives "claude needs you", with the herdr workspace label
 and the pane title. Nothing pops up for the pane you are looking at (focused pane
-with Ghostty in front, asked to skyland's CLI when it is there).
+with your terminal in front, asked to skyland's CLI when it is there). The terminal
+is skyland's `[terminal] app`, Ghostty by default.
 
 ```sh
-herdr plugin link ~/code/hyperland/skyland-cyberdeck/integrations/herdr
+herdr plugin link "$(brew --prefix)/share/skyland-cyberdeck/herdr"   # Homebrew
+herdr plugin link integrations/herdr                                # from a clone
 ```
+
+`skyland-cyberdeck` and `skyland` are looked up on the PATH (plus `~/.local/bin`
+and `/opt/homebrew/bin`); `SKYLAND_CYBERDECK` / `SKYLAND_CLI` override them.
 
 ### Mail
 
@@ -107,19 +112,27 @@ Any mail checker can call `notify`, e.g. a sketchybar mail item, once per new ma
 skyland-cyberdeck notify -a com.apple.mail -t "$subject" -s "$sender" -b "$preview"
 ```
 
-## Build
+## Install
 
 ```sh
-swift build -c release   # .build/release/skyland-cyberdeck, macOS 13+
+brew install waxdred/tap/skyland-cyberdeck
+```
+
+Or from source (Swift 5.9+, macOS 13+), then put `.build/release/skyland-cyberdeck`
+on your PATH:
+
+```sh
+swift build -c release
+ln -s "$PWD/.build/release/skyland-cyberdeck" ~/.local/bin/
 ```
 
 With skyland, bind it in `~/.config/aerospace/aerospace.toml`:
 
 ```toml
 [mode.main.binding]
-alt-d = 'exec-and-forget ~/code/hyperland/skyland-cyberdeck/.build/release/skyland-cyberdeck launcher'
-alt-shift-m = 'exec-and-forget ~/code/hyperland/skyland-cyberdeck/.build/release/skyland-cyberdeck messages'
-alt-shift-x = 'exec-and-forget ~/code/hyperland/skyland-cyberdeck/.build/release/skyland-cyberdeck dismiss --all'
+alt-d = 'exec-and-forget skyland-cyberdeck launcher'
+alt-shift-m = 'exec-and-forget skyland-cyberdeck messages'
+alt-shift-x = 'exec-and-forget skyland-cyberdeck dismiss --all'
 ```
 
 ## License
