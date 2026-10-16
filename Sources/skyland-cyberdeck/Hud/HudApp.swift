@@ -102,7 +102,7 @@ struct ScaledDeck<Deck: View>: View {
     @State private var natural = CGSize.zero
     var body: some View {
         deck()
-            .environment(\.colorScheme, .dark)
+            .environment(\.colorScheme, Tok.isLight ? .light : .dark) // system controls (sliders, menus) follow the theme
             .fixedSize()
             .background(GeometryReader { Color.clear.preference(key: DeckSize.self, value: $0.size) })
             .onPreferenceChange(DeckSize.self) { size in
