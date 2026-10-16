@@ -272,11 +272,11 @@ struct CalendarCard: View {
         let cells = monthGrid(month, firstWeekday: model.firstWeekday)
         let shift = model.firstWeekday - 1
         let symbols = Array(calendar.shortStandaloneWeekdaySymbols[shift...] + calendar.shortStandaloneWeekdaySymbols[..<shift])
-        return Card {
+        return Card(action: { model.open(app: "com.apple.iCal") }) {
             HStack {
                 Text(month.formatted(.dateTime.month(.abbreviated).year()).uppercased())
                     .font(Tok.mono(15, .semibold)).foregroundStyle(Tok.accent).kerning(1.5)
-                    .hover(4) { model.open(app: "com.apple.iCal") }.help("Open Calendar")
+                    .help("Open Calendar")
                 Spacer()
                 Button { model.monthOffset -= 1 } label: { Image(systemName: "chevron.left") }.buttonStyle(.plain).help("Previous month")
                 Button { model.monthOffset += 1 } label: { Image(systemName: "chevron.right") }.buttonStyle(.plain).help("Next month")
@@ -293,7 +293,7 @@ struct CalendarCard: View {
                         .foregroundStyle(today ? Tok.background : Tok.text)
                         .frame(width: 30, height: 22)
                         .background(today ? RoundedRectangle(cornerRadius: 5).fill(Tok.accent).shadow(color: Tok.accent, radius: 5) : nil)
-                        .hover(5)
+                        .hover(5) { model.open(app: "com.apple.iCal") }
                         .accessibilityLabel(day.map { $0.formatted(date: .complete, time: .omitted) + (today ? ", today" : "") } ?? "")
                 }
             }
