@@ -2,6 +2,19 @@
 
 Each `## vX.Y.Z` section is also the text of its GitHub release.
 
+## v0.3.0
+
+- **Audio deck** (`skyland-cyberdeck audio`): the audioware wave from skyland's media
+  widget on the horizon of the cyberspace grid, drawn from the system audio (Screen
+  Recording permission), its line is the progress (click to seek); now playing of any
+  app with previous / play-pause / next; volume, mute and output ports; the apps
+  outputting sound. Keys: space, arrows, m, 1-9, esc. Cyberpunk theme by default,
+  `[audio]` settings.
+- Now playing goes through a bundled copy of mediaremote-adapter (BSD-3), loaded by
+  `/usr/bin/perl` as macOS 15.4+ requires; Homebrew installs it with the binary.
+- Apps started from a terminal (not known to LaunchServices) are named and shown with
+  their icon.
+
 ## v0.2.0
 
 - **HUD** (`skyland-cyberdeck hud`, `alt-shift-d` in skyland): clock, calendar,
