@@ -66,6 +66,10 @@ final class HudApp: NSObject, NSApplicationDelegate {
         if let saved = HudApp.defaults.string(forKey: "hudTopLeft").map(NSPointFromString),
            NSScreen.screens.contains(where: { $0.frame.insetBy(dx: -1, dy: -1).contains(saved) }) {
             frame.origin = NSPoint(x: saved.x, y: saved.y - height)
+            // kept on screen: a bigger deck (scale, more rows) than when it was dragged there
+            let visible = NSScreen.screens.first { $0.frame.insetBy(dx: -1, dy: -1).contains(saved) }?.visibleFrame ?? area
+            frame.origin.x = min(max(frame.minX, visible.minX), visible.maxX - frame.width)
+            frame.origin.y = min(max(frame.minY, visible.minY), visible.maxY - frame.height)
         }
         if frame != panel.frame { panel.setFrame(frame, display: true) }
     }
