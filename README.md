@@ -281,7 +281,7 @@ swift build -c release
 ln -s "$PWD/.build/release/skyland-cyberdeck" ~/.local/bin/
 ```
 
-With skyland, bind it in `~/.config/aerospace/aerospace.toml`:
+With skyland, bind it in `~/.config/skyland/skyland.toml`:
 
 ```toml
 [mode.main.binding]
