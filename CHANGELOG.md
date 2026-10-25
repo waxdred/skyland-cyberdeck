@@ -2,6 +2,11 @@
 
 Each `## vX.Y.Z` section is also the text of its GitHub release.
 
+## Unreleased
+
+- `theme wallpaper`: the colors of the wallpaper, also when skyland uses another theme
+  (`[wallpaper] dynamic-colors = false`, e.g. glyph).
+
 ## v0.3.1
 
 - Audio deck: about 34% CPU instead of 42% while playing (the audioware wave costs
