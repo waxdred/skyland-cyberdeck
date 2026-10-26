@@ -2,6 +2,11 @@
 
 Each `## vX.Y.Z` section is also the text of its GitHub release.
 
+## Unreleased
+
+- herdr messages say what the agent said last (the first line of its last reply, from the
+  Claude Code transcript), no longer the tab title, which is the session's first task.
+
 ## v0.3.1
 
 - Audio deck: about 34% CPU instead of 42% while playing (the audioware wave costs
