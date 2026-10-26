@@ -4,8 +4,8 @@ Each `## vX.Y.Z` section is also the text of its GitHub release.
 
 ## Unreleased
 
-- `theme wallpaper`: the colors of the wallpaper, also when skyland uses another theme
-  (`[wallpaper] dynamic-colors = false`, e.g. glyph).
+- herdr messages say what the agent said last (the first line of its last reply, from the
+  Claude Code transcript), no longer the tab title, which is the session's first task.
 
 ## v0.3.1
 

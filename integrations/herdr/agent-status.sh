@@ -39,13 +39,39 @@ print("\t".join([
 ]))
 ')
 
-# workspace label, pane title and focus from herdr (the event only has ids)
+# workspace label, what the agent said last and focus from herdr (the event only has ids).
+# The pane title is the session's first task (Claude Code names the tab once): the text of
+# the agent's last reply says what it did; the title only when there is no transcript.
 HERDR="${HERDR_BIN_PATH:-herdr}"
 pane_id="$(printf '%s' "$HERDR_PLUGIN_EVENT_JSON" | /usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin).get("data", {}).get("pane_id", ""))' 2>/dev/null)"
 focused=false
 if [[ -n "$pane_id" ]]; then
     IFS=$'\t' read -r where detail focused < <("$HERDR" pane get "$pane_id" 2>/dev/null | /usr/bin/python3 -c '
-import json, subprocess, sys
+import glob, json, os, re, subprocess, sys
+
+def last_reply(session):
+    """first line of the last text reply in a Claude Code transcript (~/.claude/projects)"""
+    files = glob.glob(os.path.expanduser(f"~/.claude/projects/*/{session}.jsonl"))
+    if not files:
+        return ""
+    with open(files[0], "rb") as f:
+        f.seek(0, 2)
+        f.seek(max(0, f.tell() - 2_000_000))
+        lines = f.read().decode("utf-8", "replace").splitlines()
+    for line in reversed(lines):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        content = entry.get("message", {}).get("content") if entry.get("type") == "assistant" else None
+        texts = [c.get("text", "") for c in content or [] if isinstance(c, dict) and c.get("type") == "text" and c.get("text", "").strip()]
+        if texts:
+            first = next(l for l in texts[-1].splitlines() if l.strip())
+            first = re.sub(r"^\*\*[^*]+\*\*\s*[—-]\s*", "", first.strip())  # a "**Name** — " greeting
+            first = re.sub(r"[*`#]", "", first).lstrip("- ").strip()
+            return first[:160]
+    return ""
+
 try:
     pane = json.load(sys.stdin)["result"]["pane"]
 except (ValueError, KeyError):
@@ -56,7 +82,9 @@ try:
     label = json.loads(out)["result"]["workspace"].get("label", "")
 except Exception:
     pass
-print("\t".join([label, pane.get("terminal_title_stripped", ""), str(pane.get("focused", False)).lower()]))
+session = pane.get("agent_session") or {}
+said = last_reply(session.get("value", "")) if session.get("source") == "herdr:claude" and session.get("kind") == "id" else ""
+print("\t".join([label, said or pane.get("terminal_title_stripped", ""), str(pane.get("focused", False)).lower()]))
 ' "$HERDR")
 fi
 case "$status" in
