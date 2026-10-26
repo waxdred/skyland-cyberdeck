@@ -2,7 +2,8 @@ import AppKit
 
 /// Colors of the deck: the built-in "cyberpunk" palette, the current skyland theme
 /// ("skyland": ~/.cache/skyland/theme.css, follows light / dark, the theme picker
-/// and the wallpaper colors), a skyland theme by name (~/.config/skyland/themes/
+/// and the wallpaper colors), "wallpaper" (the colors of the wallpaper, even with skyland
+/// on another theme: ~/.cache/skyland/themes/wallpaper-<light|dark>.css), a skyland theme by name (~/.config/skyland/themes/
 /// <name>.css) or any file of `@define-color <key> #rrggbb;` lines. Theme keys:
 /// accent -> primary, highlight -> secondary, term3 -> highlight, bg -> ink.
 struct Theme {
@@ -32,7 +33,10 @@ struct Theme {
 
     /// CSS file of a theme name, nil for cyberpunk or an unknown name.
     static func file(_ name: String) -> URL? {
-        let candidates = [name == "skyland" ? home.appending(path: ".cache/skyland/theme.css") : nil,
+        let cache = home.appending(path: ".cache/skyland")
+        let mode = (try? String(contentsOf: cache.appending(path: "theme-mode"), encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) == "light" ? "light" : "dark"
+        let candidates = [name == "skyland" ? cache.appending(path: "theme.css") : nil,
+                          name == "wallpaper" ? cache.appending(path: "themes/wallpaper-\(mode).css") : nil,
                           name.hasSuffix(".css") ? URL(fileURLWithPath: (name as NSString).expandingTildeInPath) : nil,
                           themesDir.appending(path: "\(name).css")]
         return candidates.compactMap { $0 }.first { FileManager.default.fileExists(atPath: $0.path) }
@@ -41,7 +45,7 @@ struct Theme {
     /// Names to pass to `theme`: built-ins, then the skyland themes.
     static func available() -> [String] {
         let files = (try? FileManager.default.contentsOfDirectory(atPath: themesDir.path)) ?? []
-        return ["cyberpunk", "netrunner", "skyland"] + files.filter { $0.hasSuffix(".css") }.map { String($0.dropLast(4)) }.sorted()
+        return ["cyberpunk", "netrunner", "skyland", "wallpaper"] + files.filter { $0.hasSuffix(".css") }.map { String($0.dropLast(4)) }.sorted()
     }
 
     static func load() -> Theme { load(named: name) }
