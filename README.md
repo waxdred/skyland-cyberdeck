@@ -205,7 +205,7 @@ skyland-cyberdeck list --json | jq length
 
 ```sh
 skyland-cyberdeck theme                 # current theme
-skyland-cyberdeck theme list            # cyberpunk, skyland, then the skyland themes
+skyland-cyberdeck theme list            # cyberpunk, netrunner, skyland, wallpaper, then the skyland themes
 skyland-cyberdeck theme skyland         # follow the current skyland theme
 skyland-cyberdeck theme 43pr-dracula    # a skyland theme by name, or a path to a .css file
 skyland-cyberdeck launcher --theme 43pr-nord   # this call only
@@ -214,6 +214,8 @@ skyland-cyberdeck launcher --theme 43pr-nord   # this call only
 - `cyberpunk` (default): neon red, cyan and yellow
 - `skyland`: `~/.cache/skyland/theme.css`, so it follows light / dark, the theme
   picker and the colors generated from the wallpaper
+- `wallpaper`: the colors generated from the wallpaper (light or dark), even when skyland
+  itself uses another theme (`[wallpaper] dynamic-colors = false`)
 - any file of `@define-color <key> #rrggbb;` lines (the 43PR / skyland theme format),
   by name from `~/.config/skyland/themes` or by path: `accent` is the primary color,
   `highlight` the secondary, `term3` the highlight and `bg` the background tint
@@ -279,7 +281,7 @@ swift build -c release
 ln -s "$PWD/.build/release/skyland-cyberdeck" ~/.local/bin/
 ```
 
-With skyland, bind it in `~/.config/aerospace/aerospace.toml`:
+With skyland, bind it in `~/.config/skyland/skyland.toml`:
 
 ```toml
 [mode.main.binding]
